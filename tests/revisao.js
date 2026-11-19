@@ -87,7 +87,8 @@ async function testarRevisao() {
   exigir(texto(".hourly-list li:first-child strong") === "20 °C" && texto(".hourly-list li:last-child strong") === "22 °C",
     "Ordene as horas sem perder a correspondência com suas medidas.");
   clicar(".forecast-list button");
-  exigir(quadro.contentDocument.activeElement.id === "detalhes-do-dia", "O resumo semanal deve receber foco.");
+  await esperar(() => quadro.contentDocument.activeElement.id === "detalhes-calendario",
+    "O resumo semanal deve abrir o calendário e focar o dia escolhido.");
   await navegar("graficos");
   const controle = buscar("#graficos .chart-hour");
   controle.value = "1";
@@ -154,7 +155,7 @@ async function testarRevisao() {
   clicar(".forecast-list [data-day='2026-11-01']");
   janela().ajustarRelogio("2026-11-02T06:00:00Z");
   janela().eval("displayDailyMetrics(new Date())");
-  exigir(!buscar(".forecast-list [data-day='2026-11-01']") && buscar("#detalhes-do-dia").hidden &&
+  exigir(!buscar(".forecast-list [data-day='2026-11-01']") && buscar("#detalhes-calendario").hidden &&
     buscar('.calendar-days [aria-current="date"]').dataset.day === "2026-11-02", "Atualize as datas na virada do dia local.");
 
   quadro.style.width = "320px";
@@ -170,7 +171,7 @@ async function testarRevisao() {
     verificarLargura(320);
   }
   clicar(".skip-link");
-  exigir(janela().location.hash === "#configuracoes" && quadro.contentDocument.activeElement.id === "painel",
+  exigir(janela().location.hash === "#configuracoes" && quadro.contentDocument.activeElement.id === "configuracoes",
     "O atalho de conteúdo deve manter a seção aberta.");
   clicar(".sidebar-toggle");
   buscar('nav a[href="#configuracoes"]').focus();
@@ -204,6 +205,18 @@ async function testarServicosReais() {
     "A previsão real de Recife não abriu no Chrome.", 480);
   exigir(texto(".region").includes("Pernambuco") && buscar(".hourly-list").children.length > 0 &&
     buscar(".forecast-list").children.length > 0, "A resposta real deve incluir Recife, Pernambuco, e os períodos previstos.");
+  await navegar("graficos");
+  for (const [metrica, unidade] of [
+    ["temperature_2m", "°C"],
+    ["relative_humidity_2m", "%"],
+    ["wind_speed_10m", "km/h"],
+    ["precipitation_probability", "%"],
+    ["cloud_cover", "%"],
+  ]) {
+    mudar("#chart-metric", metrica);
+    exigir(!buscar("#graficos .chart-content").hidden && texto("#chart-reading").includes(unidade),
+      "Confira a métrica e a unidade na página Gráficos.");
+  }
   const a = ".compare-city:nth-child(1) .compare-search";
   const b = ".compare-city:nth-child(2) .compare-search";
   await navegar("comparar");
@@ -215,14 +228,250 @@ async function testarServicosReais() {
   await navegar("mapas");
   await esperar(() => !buscar(".map-grid").hidden && Boolean(buscar(".leaflet-tile-loaded")),
     "O Leaflet ou os mosaicos do OpenStreetMap não carregaram.", 480);
+  exigir(buscar(".leaflet-tile-loaded").naturalWidth > 0 &&
+    janela().performance.getEntriesByType("resource").some(({ name }) => name.startsWith("https://tile.openstreetmap.org/")),
+  "Confirme que uma imagem real do OpenStreetMap foi carregada e decodificada.");
   exigir(Boolean(buscar('.leaflet-control-attribution a[href*="leafletjs.com"]')) &&
     Boolean(buscar('.leaflet-control-attribution a[href*="openstreetmap.org"]')), "Atribua o mapa a suas fontes.");
   clicar(".map-center");
   clicar(".map-inspect");
   await esperar(() => !buscar(".map-point-data").hidden, "A consulta real do centro do mapa não carregou.", 480);
+  exigir(texto(".map-point-time").includes("horário local"), "Mostre a data e hora reais no fuso do ponto.");
   verificarLargura(1280);
   quadro.style.width = "320px";
   await esperar(() => janela().innerWidth === 320, "O mapa deve acompanhar a mudança de largura.");
   verificarLargura(320);
-  resultado.textContent = "Serviços reais de previsão, geocodificação, qualidade do ar e mapas.";
+  await testarInteracoesDoMapa();
+  resultado.textContent = "Serviços reais e mosaicos OpenStreetMap. Interações Leaflet, falhas e recuperação com mosaicos simulados.";
+}
+
+async function testarInteracoesDoMapa() {
+  localStorage.clear();
+  quadro.style.width = "1280px";
+  await abrir();
+  await consultar("Recife");
+  await navegar("mapas");
+  const mapa = (codigo) => janela().eval(codigo);
+  const mosaicoVisivel = () => buscar(".leaflet-tile-loaded")?.naturalWidth > 0;
+  await esperar(mosaicoVisivel, "O mapa deve inicializar com o marcador e o mosaico.", 480);
+  exigir(mapa("weatherMap.cityMarker.getLatLng().lat") === 1, "Centralize o mapa na cidade salva.");
+  mapa("window.instanciaTestadaDoMapa = weatherMap.map");
+
+  const zoom = mapa("weatherMap.map.getZoom()");
+  mapa("weatherMap.map.once('zoomend', () => { window.zoomConcluido = true; })");
+  clicar(".leaflet-control-zoom-in");
+  await esperar(() => janela().zoomConcluido && mapa("weatherMap.map.getZoom()") === zoom + 1 && mosaicoVisivel(),
+    "O botão deve aumentar o zoom.");
+  const centro = mapa("weatherMap.map.getCenter().lng");
+  const area = buscar(".map-canvas");
+  const retangulo = area.getBoundingClientRect();
+  const x = Math.round(retangulo.left + retangulo.width / 2);
+  const y = Math.round(retangulo.top + retangulo.height / 2);
+  const eventoDoMouse = (alvo, tipo, distancia) => {
+    const evento = new (janela().MouseEvent)(tipo, {
+      bubbles: true, clientX: x + distancia, clientY: y, button: 0, buttons: tipo === "mouseup" ? 0 : 1,
+    });
+    Object.defineProperty(evento, "which", { value: 1 });
+    alvo.dispatchEvent(evento);
+  };
+  eventoDoMouse(area, "mousedown", 0);
+  eventoDoMouse(area, "mousemove", 12);
+  await pausa(30);
+  eventoDoMouse(area, "mousemove", 84);
+  await pausa(60);
+  eventoDoMouse(area, "mouseup", 84);
+  await esperar(() => mapa("weatherMap.map.getCenter().lng") !== centro, "Arrastar deve mover o mapa.");
+  clicar(".map-center");
+  exigir(mapa("weatherMap.map.getCenter().equals(weatherMap.cityMarker.getLatLng())"), "Recentralize no marcador da cidade.");
+
+  mapa("weatherMap.map.fire('click', { latlng: L.latLng(1.25, 1.5) })");
+  await esperar(() => !buscar(".map-point-data").hidden, "Selecionar um ponto deve consultar o tempo.");
+  exigir(texto(".map-point-coordinates").includes("1,25°") && texto(".map-point-time").includes("09:00") &&
+    texto(".map-point-values").includes("58%") && texto(".map-point-values").includes("km/h"), "Informe coordenadas, hora local e leituras.");
+  exigir(mapa("weatherMap.pointMarker.getLatLng().equals(L.latLng(1.25, 1.5))"), "Posicione o marcador no ponto selecionado.");
+
+  janela().estadoDosMosaicos = "bloqueado";
+  await consultar("São Paulo");
+  await esperar(() => texto(".map-status").includes("recusou"), "Exiba uma mensagem de acesso recusado.");
+  exigir(!buscar(".leaflet-tile") && !buscar(".map-retry").hidden && buscar(".map-city-marker") &&
+    mapa("weatherMap.cityMarker.getLatLng().lat") === 2, "Remova os mosaicos bloqueados e preserve o marcador da nova cidade.");
+  const pedidos = janela().pedidosDeMosaico.length;
+  clicar(".leaflet-control-zoom-out");
+  await navegar("painel");
+  await navegar("mapas");
+  exigir(janela().pedidosDeMosaico.length === pedidos && mapa("weatherMap.map === window.instanciaTestadaDoMapa"),
+    "Mantenha uma instância e não repita a requisição bloqueada automaticamente.");
+  clicar(".map-inspect");
+  await esperar(() => !buscar(".map-point-data").hidden, "A consulta do tempo deve funcionar sem os mosaicos.");
+
+  janela().falharTempoNoPonto = true;
+  clicar(".map-inspect");
+  await esperar(() => texto(".map-point-status").includes("Não foi possível"), "Informe falhas da consulta de tempo.");
+  exigir(!buscar(".map-point-coordinates").hidden && buscar(".map-point-data").hidden, "Preserve as coordenadas e oculte leituras inválidas.");
+  janela().falharTempoNoPonto = false;
+  janela().estadoDosMosaicos = "limitado";
+  clicar(".map-retry");
+  await esperar(() => texto(".map-status").includes("limitou"), "Informe o limite de consultas.");
+  const pedidosLimitados = janela().pedidosDeMosaico.length;
+  clicar(".map-retry");
+  exigir(janela().pedidosDeMosaico.length === pedidosLimitados, "Respeite o tempo de espera antes de reenviar.");
+  janela().ajustarRelogio("2026-11-18T12:02:00Z");
+  janela().estadoDosMosaicos = "sem rede";
+  clicar(".map-retry");
+  await esperar(() => texto(".map-status").includes("indisponíveis"), "Exiba falha de rede com opção de nova tentativa.");
+  janela().estadoDosMosaicos = "normal";
+  clicar(".map-retry");
+  await esperar(mosaicoVisivel, "O botão deve recuperar os mosaicos quando o serviço volta.");
+  quadro.style.width = "320px";
+  await esperar(() => janela().innerWidth === 320 &&
+    mapa("weatherMap.map.getSize().x === weatherMap.canvas.clientWidth"), "Redimensione o Leaflet na página ativa.");
+  verificarLargura(320);
+  exigir(mapa("weatherMap.map === window.instanciaTestadaDoMapa") && buscar(".map-city-marker").getClientRects().length > 0,
+    "Mantenha a instância e o marcador após o redimensionamento.");
+  exigir(janela().errosDoATMOS.length === 0, "Erros do mapa: " + janela().errosDoATMOS.join(" · "));
+}
+
+async function testarNavegacao() {
+  localStorage.clear();
+  quadro.style.width = "1280px";
+  await abrir("#painel");
+  await consultar("Recife");
+  clicar(".favorite-toggle");
+  janela().eval('loadLeaflet.pending = Promise.resolve(undefined)');
+  const paginas = ["painel", "graficos", "favoritos", "comparar", "mapas", "qualidade-do-ar", "calendario", "configuracoes"];
+  for (const largura of [1280, 320]) {
+    quadro.style.width = largura + "px";
+    await esperar(() => janela().innerWidth === largura, "Atualize a largura testada.");
+    for (const pagina of paginas) {
+      await navegar(pagina);
+      const visiveis = quadro.contentDocument.querySelectorAll("[data-page]:not([hidden])");
+      exigir(visiveis.length === 1 && visiveis[0].id === pagina, "Mostre apenas a página ativa.");
+      exigir(buscar('nav a[aria-current="page"]').hash === "#" + pagina, "Destaque a página ativa.");
+      for (const seletor of [".topbar .search", ".location-button", ".refresh-button", ".theme-button"]) {
+        exigir(buscar(seletor).getClientRects().length > 0, "Mantenha os controles globais na página " + pagina + ".");
+      }
+      verificarLargura(largura);
+    }
+    await navegar("painel");
+    janela().scrollTo(0, 480);
+    await esperar(() => janela().scrollY > 100, "Role o documento para testar a barra lateral.");
+    const barra = buscar(".sidebar").getBoundingClientRect();
+    exigir(barra.top >= 0 && barra.top <= 24 && barra.bottom <= janela().innerHeight, "Mantenha a barra no campo visível.");
+    if (largura > 720) {
+      exigir(barra.right <= buscar("main").getBoundingClientRect().left, "A barra lateral não deve sobrepor o conteúdo.");
+    }
+    const estavaExpandido = buscar(".sidebar-toggle").getAttribute("aria-expanded");
+    clicar(".sidebar-toggle");
+    exigir(buscar(".sidebar-toggle").getAttribute("aria-expanded") !== estavaExpandido, "Alterne a expansão do menu.");
+    clicar(".sidebar-toggle");
+    exigir(buscar(".sidebar-toggle").getAttribute("aria-expanded") === estavaExpandido, "Restaure o estado do menu.");
+    await navegar("graficos");
+    exigir(janela().scrollY === 0 && texto(".charts-location").includes("Recife"), "Volte ao topo e preserve a cidade nos gráficos.");
+    await navegar("favoritos");
+    janela().history.back();
+    await esperar(() => !buscar("#graficos").hidden, "O botão Voltar deve reabrir Gráficos.");
+    exigir(janela().scrollY === 0 && quadro.contentDocument.activeElement.id === "graficos", "Restaure o topo e o foco ao voltar.");
+    janela().history.forward();
+    await esperar(() => !buscar("#favoritos").hidden, "O botão Avançar deve reabrir Favoritos.");
+    exigir(janela().scrollY === 0 && quadro.contentDocument.activeElement.id === "favoritos", "Restaure o topo e o foco ao avançar.");
+    await navegar("calendario");
+    exigir(texto(".calendar-location").includes("Recife"), "Preserve a cidade no calendário.");
+    await navegar("painel");
+    exigir(texto(".city") === "Recife", "Preserve a cidade no painel.");
+  }
+  quadro.style.height = "340px";
+  await esperar(() => janela().innerHeight === 340, "Reduza a altura da janela de teste.");
+  clicar(".sidebar-toggle");
+  exigir(buscar("#menu").scrollHeight > buscar("#menu").clientHeight, "Permita rolar o menu em telas baixas.");
+  buscar('nav a[href="#configuracoes"]').focus();
+  tecla('nav a[href="#configuracoes"]', "Escape");
+  exigir(buscar("#menu").getClientRects().length === 0 && quadro.contentDocument.activeElement === buscar(".sidebar-toggle"),
+    "Escape deve fechar o menu móvel e restaurar o foco.");
+  await navegar("favoritos");
+  clicar(".favorite-remove");
+  exigir(buscar(".favorite-list").children.length === 0 && !buscar("#favoritos").hidden &&
+    quadro.contentDocument.activeElement.id === "favoritos", "Permita remover um favorito sem sair da página.");
+  exigir(JSON.parse(localStorage.getItem("atmos-cidades")).favorites.length === 0, "Persista a remoção do favorito.");
+  await abrir("#graficos");
+  exigir(!buscar("#graficos").hidden && buscar("#painel").hidden && texto(".charts-location").includes("Recife"),
+    "Um link direto para Gráficos deve carregar apenas essa página com a cidade salva.");
+  resultado.textContent += " Oito páginas independentes, barra lateral visível durante a rolagem e histórico de navegação.";
+}
+
+async function testarContexto() {
+  localStorage.clear();
+  quadro.style.height = "700px";
+  await abrir("#painel");
+  exigir(texto(".temperature-label") === "Temperatura do ar" && texto(".feels-like").includes("Sensação térmica"),
+    "Diferencie a temperatura do ar da sensação térmica.");
+  const ajudaTemperatura = buscar(".current details");
+  ajudaTemperatura.querySelector("summary").focus();
+  clicar(".current summary");
+  exigir(ajudaTemperatura.open && ajudaTemperatura.textContent.includes("radiação solar") &&
+    quadro.contentDocument.activeElement === ajudaTemperatura.querySelector("summary"), "Abra a explicação mantendo o foco.");
+  clicar(".current summary");
+  exigir(!ajudaTemperatura.open, "A explicação pode ser recolhida.");
+  for (const [leitura, valor, descricao] of [
+    [".humidity", "58%", "saturação"],
+    [".wind", "16,1 km/h", "de onde"],
+    [".cloud-cover", "35%", "céu coberta"],
+    [".precipitation-amount", "0,6 mm", "acumulada"],
+    [".surface-pressure", "1.008 hPa", "hectopascais"],
+    [".precipitation", "10%", "Maior chance horária"],
+  ]) {
+    const leituraAtual = buscar(leitura);
+    exigir(leituraAtual.textContent.replace(/\s/g, "") === valor.replace(/\s/g, "") &&
+      leituraAtual.closest(".metric").querySelector(".metric-context").textContent.includes(descricao),
+    "Confira a leitura, a unidade e a explicação de " + leitura + ".");
+  }
+  exigir(texto(".precipitation-interval").includes("15 min") && texto(".wind-direction").includes("90°"),
+    "Identifique o intervalo do acumulado e a direção em graus.");
+  exigir(texto(".uv-index") === "2 · Baixo" && buscar(".uv-guidance").hidden, "Use a faixa baixa quando o índice for 2.");
+  await consultar("Recife");
+  exigir(texto(".uv-index") === "8 · Muito alto" && texto(".uv-hourly") === "3 · Moderado" &&
+    texto(".uv-guidance").includes("perto do meio-dia"), "Atualize a classificação e a orientação ao trocar de cidade.");
+  for (const [valor, faixa] of [[0, "Baixo"], [3, "Moderado"], [6, "Alto"], [8, "Muito alto"], [11, "Extremo"]]) {
+    exigir(janela().eval("describeUv(" + valor + ").reading").endsWith(faixa), "Confira o limite da faixa " + faixa + ".");
+  }
+  exigir(texto(".sunrise") === "06:00" && texto(".sunset") === "18:30" && texto(".daylight-duration") === "12 h 30 min",
+    "Mostre horas locais e calcule a duração entre os dois instantes.");
+  clicar(".forecast-list button");
+  await esperar(() => !buscar("#calendario").hidden, "Abra o calendário pela previsão semanal.");
+  exigir(texto(".calendar-availability").includes("indisponível") && texto(".forecast-detail-extra").includes("12 h 30 min"),
+    "Explique a disponibilidade e mostre os dados do dia selecionado.");
+  await navegar("graficos");
+  mudar("#chart-metric", "precipitation_probability");
+  const faixa = buscar("#graficos .chart-hour");
+  faixa.focus();
+  faixa.value = "1";
+  faixa.dispatchEvent(new (janela().Event)("input"));
+  exigir(texto("#chart-context").includes("0,1 mm") && texto("#graficos .chart-period").includes("Previsão do modelo") &&
+    faixa.getAttribute("aria-valuetext") === texto("#chart-reading") && texto("#chart-reading").includes("25%"),
+    "A leitura do gráfico deve informar valor, horário e unidade também pelo controle acessível.");
+  await navegar("configuracoes");
+  mudar("#temperature-unit", "fahrenheit");
+  mudar("#wind-unit", "mph");
+  await navegar("graficos");
+  mudar("#chart-metric", "temperature_2m");
+  exigir(texto("#graficos .chart-metric-title").includes("°F") && texto("#chart-reading").includes("50 °F"),
+    "A unidade do título e da leitura deve mudar para Fahrenheit.");
+  mudar("#chart-metric", "wind_speed_10m");
+  exigir(texto("#graficos .chart-metric-title").includes("mph") && texto("#chart-reading").includes("10 mph"),
+    "A unidade do título e da leitura deve mudar para mph.");
+  await navegar("qualidade-do-ar");
+  await esperar(() => !buscar(".air-data").hidden, "Carregue a escala de qualidade do ar.");
+  clicar(".air-data summary");
+  exigir(buscar(".air-data details").open && texto(".air-bands").includes("acima de 300"), "Exiba as faixas dos EUA.");
+  mudar("#air-scale", "european_aqi");
+  exigir(texto(".air-bands").includes("acima de 100") && texto(".air-category") === "Razoável" &&
+    texto(".air-pm10") === "11 µg/m³" && texto(".air-index").includes("pts"), "Diferencie categorias, pontos e concentrações.");
+  mudar("#air-chart-metric", "pm10");
+  exigir(texto("#air-chart-context").includes("10 µm") && texto(".air-chart .chart-period").includes("Últimas 24 horas"),
+    "Explique a métrica e o período histórico de qualidade do ar.");
+  verificarLargura(320);
+  await consultar("Parcial");
+  exigir(texto(".uv-index") === "Indisponível" && buscar(".uv-guidance").hidden &&
+    texto(".daylight-duration") === "Indisponível", "Sem dados, não mostre classificações nem durações.");
+  exigir(janela().errosDoATMOS.length === 0, "O navegador deve concluir a etapa sem erros.");
+  resultado.textContent += " Contexto meteorológico, classificações, unidades e detalhes expansíveis.";
 }

@@ -248,8 +248,7 @@ class CityDirectory extends CitySearch {
     this.render();
   }
 
-  toggleFavorite() {
-    const location = this.current;
+  toggleFavorite(location = this.current) {
     if (!isCity(location)) return;
     const saved = this.state.favorites.some((city) => city.id === location.id);
     this.state.favorites = saved
@@ -286,6 +285,21 @@ class CityDirectory extends CitySearch {
       appendCityLabels(location, button);
       button.addEventListener("click", () => this.select(location, false));
       row.append(button);
+      if (list === this.favorites) {
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "control favorite-remove";
+        remove.textContent = "Remover";
+        remove.setAttribute("aria-label", "Remover dos favoritos: " +
+          [location.name, cityRegion(location)].filter(Boolean).join(", "));
+        remove.addEventListener("click", () => {
+          const index = Array.from(list.children).indexOf(row);
+          this.toggleFavorite(location);
+          const next = list.children[Math.min(index, list.children.length - 1)];
+          (next?.querySelector(".favorite-remove") ?? list.closest("[data-page]")).focus();
+        });
+        row.append(remove);
+      }
       return row;
     }));
   }

@@ -29,6 +29,8 @@ O projeto mantém a licença MIT e o aviso original **Copyright (c) 2020 DenverC
 - A previsão do dia indica a maior probabilidade horária de precipitação, o índice UV máximo e a estimativa de UV para a hora local, as temperaturas máxima e mínima e os horários locais de nascer e pôr do sol.
 - Campos ausentes aparecem como **Indisponível**. Se uma nova consulta falhar, o painel mantém os últimos dados carregados e mostra uma mensagem de erro.
 - O painel usa o fuso da cidade para exibir leituras horárias. A previsão diária segue a data de referência da API, que usa um deslocamento fixo por resposta. Nas mudanças de horário de verão, as duas ocorrências de um horário repetido exibem seus respectivos deslocamentos.
+- A chance de precipitação de uma hora se refere a mais de 0,1 mm na hora que termina no horário indicado. O total acumulado do cartão de condições atuais é dado em milímetros e se refere ao intervalo anterior à leitura. O máximo diário mostra a maior chance horária prevista para o dia. [Documentação da Open-Meteo](https://open-meteo.com/en/docs)
+- O índice UV é arredondado ao inteiro mais próximo para exibir a faixa correspondente. O painel apresenta orientações de proteção a partir de 3 e orientações reforçadas a partir de 8. A duração da luz do dia é calculada quando os instantes de nascer e pôr do sol estão disponíveis. [Orientações da Organização Mundial da Saúde](https://www.who.int/news-room/questions-and-answers/item/radiation-the-ultraviolet-(uv)-index)
 
 ## Como usar
 
@@ -96,11 +98,15 @@ Confira se `origin` aponta para o repositório **AFFODAO/Atmos-Weather-Dashboard
 - Abra **Mapas** para ver a cidade selecionada no mapa interativo. Arraste, use as setas ou controle o zoom com os botões do mapa.
 - Selecione um ponto no mapa ou use **Consultar centro do mapa** para buscar as condições meteorológicas nas coordenadas escolhidas. **Voltar à cidade** reposiciona o mapa.
 - A base cartográfica usa a biblioteca [Leaflet](https://leafletjs.com/) e os mosaicos do [OpenStreetMap](https://www.openstreetmap.org/copyright). Os dados do ponto são consultados na Open-Meteo.
+- A consulta do ponto mostra as coordenadas, as condições disponíveis e a data e hora locais da estimativa quando a API informa o fuso e o horário. Se a consulta falhar, as coordenadas continuam visíveis.
+- Sirva o ATMOS por HTTP local ou HTTPS no GitHub Pages. O provedor atual dispensa chave. O navegador envia a origem real da página como referência nas consultas HTTPS aos mosaicos e respeita os cabeçalhos de cache do servidor. Os mosaicos são solicitados conforme a área visível, sem transferência antecipada para uso offline. [Política de uso de mosaicos do OpenStreetMap](https://operations.osmfoundation.org/policies/tiles/)
+- Se o provedor recusar ou limitar as consultas, o ATMOS suspende os mosaicos e mantém os marcadores e a consulta de tempo. Use **Tentar carregar o mapa novamente** após a recuperação do serviço ou o tempo de espera informado. Se a URL publicada continuar recebendo 403, confirme no painel de rede do navegador se a solicitação envia a origem da página no cabeçalho `Referer` e verifique bloqueios do navegador ou da rede. O serviço público tem disponibilidade de melhor esforço.
 
 ## Qualidade do ar
 
 - Abra **Qualidade do ar** para ver a estimativa da cidade selecionada. Escolha entre o **IQA dos EUA** e o **IQA europeu**. Cada escala usa suas próprias faixas de classificação.
 - PM₂,₅ e PM₁₀ são apresentados em µg/m³. O gráfico mostra as estimativas horárias disponíveis nas últimas 24 horas, no fuso indicado. As métricas podem ser alternadas no seletor do gráfico.
+- O IQA é uma pontuação da escala escolhida. Abra **Faixas da escala selecionada** para consultar as categorias. PM₂,₅ e PM₁₀ são concentrações de partículas, expressas em microgramas por metro cúbico.
 - Os dados da [Open-Meteo](https://open-meteo.com/en/docs/air-quality-api) são estimativas do modelo [Copernicus CAMS](https://atmosphere.copernicus.eu/). Valores ausentes aparecem como **Indisponível**. Cada cidade consultada pode reutilizar a resposta por até 15 minutos.
 
 ## Comparação de cidades
@@ -112,7 +118,7 @@ Confira se `origin` aponta para o repositório **AFFODAO/Atmos-Weather-Dashboard
 
 ## Favoritos e buscas recentes
 
-- Use o coração no cartão de tempo atual para salvar a cidade ou removê-la. Na seção **Favoritos**, selecione uma cidade salva ou uma busca recente para abrir a previsão.
+- Use o coração no cartão de tempo atual para salvar a cidade ou removê-la. Na página **Favoritos**, selecione uma cidade salva ou uma busca recente para abrir a previsão. Use **Remover** ao lado de uma cidade para atualizar os favoritos na própria página.
 - As sugestões mostram a região e o país quando disponíveis. Use as setas para navegar pela lista, Enter para escolher e Escape para fechar. Sem destacar uma opção, Enter e a lupa carregam o primeiro resultado.
 - A busca usa a API de geocodificação da Open-Meteo com dados do [GeoNames](https://www.geonames.org/).
 - O navegador guarda os favoritos, as dez cidades buscadas mais recentemente e a última cidade selecionada. Cidades homônimas são identificadas pelo código de geocodificação da Open-Meteo. **Limpar histórico** pede confirmação e preserva os favoritos e a cidade padrão.
@@ -120,13 +126,14 @@ Confira se `origin` aponta para o repositório **AFFODAO/Atmos-Weather-Dashboard
 ## Previsão interativa
 
 - Deslize a faixa de previsão horária para consultar as próximas 24 horas, incluindo a hora atual quando houver dados. Os horários seguem o fuso da cidade.
-- Selecione um dia na previsão semanal para ver o resumo e ajustar o período dos gráficos. A probabilidade semanal é a maior probabilidade horária de precipitação de cada dia.
+- Selecione um dia no resumo semanal para abrir seus detalhes no **Calendário**. De lá, use **Ver gráficos do dia** para abrir a página **Gráficos** com o período selecionado. A previsão semanal mostra a maior probabilidade horária de precipitação de cada dia.
 - Escolha uma métrica e passe o cursor, toque no gráfico ou use as setas do teclado no controle de horário para consultar valores. **Próximas 24 h** restaura o período inicial.
 - As interações reutilizam os dados da mesma consulta à Open-Meteo. Horas com valores ausentes aparecem sem pontos nos gráficos.
 
 ## Navegação e acessibilidade
 
-- Use Tab para navegar pelos controles. O primeiro atalho leva ao conteúdo da seção atual. Em telas pequenas, use o botão do menu para abrir a navegação e Escape para fechá-la.
+- Cada item da barra lateral abre uma página com endereço próprio, como `#graficos`. A busca, as ferramentas globais e a cidade selecionada acompanham a navegação. Use **Voltar** e **Avançar** do navegador para revisitar páginas.
+- A barra lateral permanece visível durante a rolagem. Em telas pequenas, use o botão do menu para abrir a navegação e Escape para fechá-la. Use Tab para percorrer os controles e o primeiro atalho do site para ir ao conteúdo da página atual.
 - Com a faixa horária em foco, use as setas para rolar os cartões. No gráfico, as setas percorrem as leituras quando o controle de horário está em foco.
 - As animações seguem a preferência de movimento reduzido do sistema. Durante a consulta inicial, o painel mostra a estrutura de carregamento. Nas consultas seguintes, os dados existentes continuam visíveis enquanto a nova resposta está pendente.
 - A interface usa a fonte [Manrope, distribuída pelo Google Fonts](https://fonts.google.com/specimen/Manrope).
@@ -136,7 +143,10 @@ Confira se `origin` aponta para o repositório **AFFODAO/Atmos-Weather-Dashboard
 Execute `python tests/testar_configuracoes.py` com Python 3.12 e Google Chrome. Use a variável `ATMOS_CHROME` se o executável estiver em outro caminho.
 
 - A suíte com dados simulados verifica a busca, cidades homônimas, falhas e respostas incompletas, cancelamento de consultas, unidades, temas, armazenamento, previsões, comparação entre fusos, geolocalização e navegação em larguras de 320, 350 e 1.280 px.
+- O teste de navegação verifica as oito páginas, os controles globais, a barra lateral durante a rolagem, o menu em telas baixas, a persistência da cidade e os botões **Voltar** e **Avançar**.
+- O teste de contexto verifica as unidades dos gráficos, a leitura acessível por horário, os detalhes expansíveis, as faixas de UV e IQA, os horários solares e o comportamento com dados ausentes.
 - Execute `python tests/testar_configuracoes.py --servicos-reais` para verificar previsão, geocodificação e qualidade do ar da Open-Meteo, além do Leaflet e dos mosaicos do OpenStreetMap. O teste precisa de acesso à internet.
+- A suíte com serviços reais também verifica as interações do Leaflet e a recuperação de 403, 429 e perda de conexão com mosaicos simulados para os testes de arrasto, zoom e falhas.
 - As duas suítes servem o projeto em um subdiretório local para verificar os caminhos relativos usados no GitHub Pages.
 - A verificação de preparação também executou a suíte com serviços reais a partir de uma origem HTTPS local, sob um subdiretório. A confirmação da URL pública deve ser feita após a publicação no Pages.
 

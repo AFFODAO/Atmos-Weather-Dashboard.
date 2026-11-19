@@ -28,7 +28,7 @@
       </div>
 
       <nav id="menu" aria-label="Navegação principal">
-        <a class="nav-item" href="#painel" aria-current="location" aria-label="Painel" title="Painel"><span aria-hidden="true">▦</span><span class="nav-label">Painel</span></a>
+        <a class="nav-item" href="#painel" aria-current="page" aria-label="Painel" title="Painel"><span aria-hidden="true">▦</span><span class="nav-label">Painel</span></a>
         <a class="nav-item" href="#graficos" aria-label="Gráficos" title="Gráficos"><span aria-hidden="true">▥</span><span class="nav-label">Gráficos</span></a>
         <a class="nav-item" href="#favoritos" aria-label="Favoritos" title="Favoritos"><span aria-hidden="true">♡</span><span class="nav-label">Favoritos</span></a>
         <a class="nav-item" href="#comparar" aria-label="Comparar" title="Comparar"><span aria-hidden="true">⇄</span><span class="nav-label">Comparar</span></a>
@@ -39,7 +39,7 @@
       </nav>
     </aside>
 
-    <main id="painel" class="main" tabindex="-1">
+    <main id="conteudo" class="main">
       <header class="topbar">
         <form class="search" role="search">
           <label class="sr-only" for="city-search">Nome da cidade</label>
@@ -70,9 +70,10 @@
         </form>
       </dialog>
 
-      <section id="calendario" aria-labelledby="calendar-title" tabindex="-1" hidden>
+      <section id="calendario" data-page aria-labelledby="calendar-title" tabindex="-1" hidden>
         <header class="page-heading"><h1 id="calendar-title">Calendário da previsão</h1><p class="calendar-location"></p></header>
         <div class="panel calendar-panel">
+          <p class="metric-context calendar-availability">Somente datas com previsão disponível na Open-Meteo aparecem aqui. Se uma data não aparece, a previsão está indisponível.</p>
           <p class="calendar-status" role="status">Aguardando dados da previsão.</p>
           <ol class="calendar-days" aria-label="Dias com previsão disponível"></ol>
           <div class="forecast-detail" id="detalhes-calendario" tabindex="-1" aria-labelledby="dia-calendario" role="region" hidden>
@@ -84,7 +85,7 @@
         </div>
       </section>
 
-      <section id="configuracoes" aria-labelledby="settings-title" tabindex="-1" hidden>
+      <section id="configuracoes" data-page aria-labelledby="settings-title" tabindex="-1" hidden>
         <header class="page-heading"><h1 id="settings-title">Configurações</h1></header>
         <div class="panel settings-panel">
           <div class="settings-preferences">
@@ -124,26 +125,30 @@
         </div>
       </section>
 
-      <div class="main-dashboard">
-      <div class="page-heading">
-        <h1>Visão geral</h1>
-        <p class="current-date"></p>
-      </div>
-      <section class="panel city-library" id="favoritos" aria-labelledby="favorites-title" tabindex="-1" hidden>
-        <div>
-          <h2 id="favorites-title">Cidades favoritas</h2>
-          <p class="favorites-empty">Você ainda não tem favoritos. Use o coração no cartão de tempo para salvar uma cidade.</p>
-          <ul class="favorite-list"></ul>
-        </div>
-        <div>
-          <div class="library-heading">
-            <h3>Buscas recentes</h3>
-            <button class="control clear-history" type="button" disabled>Limpar histórico</button>
+      <section id="favoritos" data-page aria-labelledby="favorites-title" tabindex="-1" hidden>
+        <header class="page-heading"><h1 id="favorites-title">Favoritos</h1></header>
+        <div class="city-library">
+          <div class="panel">
+            <h2>Cidades favoritas</h2>
+            <p class="favorites-empty">Você ainda não tem favoritos. Use o coração no cartão de tempo para salvar uma cidade.</p>
+            <ul class="favorite-list"></ul>
           </div>
-          <p class="history-empty">As cidades que você buscar aparecerão aqui.</p>
-          <ul class="history-list"></ul>
+          <div class="panel">
+            <div class="library-heading">
+              <h2>Buscas recentes</h2>
+              <button class="control clear-history" type="button" disabled>Limpar histórico</button>
+            </div>
+            <p class="history-empty">As cidades que você buscar aparecerão aqui.</p>
+            <ul class="history-list"></ul>
+          </div>
         </div>
       </section>
+
+      <section id="painel" data-page aria-labelledby="dashboard-title" tabindex="-1">
+      <header class="page-heading">
+        <h1 id="dashboard-title">Visão geral</h1>
+        <p class="current-date"></p>
+      </header>
       <div class="dashboard skeleton" aria-hidden="true" hidden>
         <div class="overview">
           <div class="panel skeleton-current"><span></span><span></span><span></span></div>
@@ -162,17 +167,26 @@
               <h2 id="current-title">Condições atuais</h2>
               <p class="city"></p>
               <p class="region" hidden></p>
+              <p class="temperature-label">Temperatura do ar</p>
               <p class="temp"></p>
               <p class="description"></p>
               <p class="feels-like"></p>
               <p class="observation-time"></p>
+              <details class="weather-explanation">
+                <summary>Temperatura e sensação térmica</summary>
+                <p>A temperatura indica o quanto o ar está quente ou frio. A sensação térmica estima como ele é percebido, considerando vento, umidade e radiação solar.</p>
+              </details>
             </div>
             <button class="control favorite-toggle" type="button" aria-label="Cidade favorita"
               aria-pressed="false" title="Salvar cidade como favorita" hidden><span aria-hidden="true">♡</span></button>
           </section>
 
           <section class="panel hourly" aria-labelledby="hourly-title">
-            <h2 id="hourly-title">Próximas 24 horas</h2>
+            <div class="panel-heading">
+              <h2 id="hourly-title">Próximas 24 horas</h2>
+              <a class="hourly-charts-link" href="#graficos">Ver gráficos por hora</a>
+            </div>
+            <p class="metric-context">A chance de precipitação se refere à hora que termina no horário indicado.</p>
             <ol class="hourly-list" tabindex="0" aria-label="Previsão horária no fuso da cidade"></ol>
             <p class="hourly-status" hidden></p>
           </section>
@@ -183,26 +197,30 @@
               <div class="panel metric">
                 <dt><span aria-hidden="true">◈</span> Umidade relativa</dt>
                 <dd class="percent-reading"><span class="percent-ring" aria-hidden="true" hidden></span><span class="humidity"></span></dd>
+                <dd class="metric-context">Vapor de água no ar em relação ao limite de saturação na temperatura atual. Em 100%, o ar está saturado.</dd>
               </div>
               <div class="panel metric">
                 <dt><span aria-hidden="true">≋</span> Vento</dt>
                 <dd class="wind-reading"><span class="compass" aria-hidden="true" hidden><span>N</span><span class="compass-needle">↑</span></span><span class="wind"></span></dd>
                 <dd class="metric-detail">Direção de origem: <span class="wind-direction"></span></dd>
                 <dd class="metric-detail">Rajadas: <span class="wind-gusts"></span></dd>
+                <dd class="metric-context">A direção indica de onde o vento vem. Rajadas são aumentos breves da velocidade.</dd>
               </div>
               <div class="panel metric">
-                <dt><span aria-hidden="true">☂</span> Precipitação</dt>
+                <dt><span aria-hidden="true">☂</span> Precipitação acumulada</dt>
                 <dd class="precipitation-amount"></dd>
                 <dd class="metric-detail precipitation-interval" hidden></dd>
+                <dd class="metric-context">Quantidade acumulada, em milímetros de água equivalente.</dd>
               </div>
               <div class="panel metric">
                 <dt><span aria-hidden="true">☁</span> Cobertura de nuvens</dt>
                 <dd class="percent-reading"><span class="percent-ring" aria-hidden="true" hidden></span><span class="cloud-cover"></span></dd>
+                <dd class="metric-context">Parcela estimada do céu coberta por nuvens, de 0% a 100%.</dd>
               </div>
               <div class="panel metric">
                 <dt><span aria-hidden="true">◉</span> Pressão atmosférica</dt>
                 <dd class="surface-pressure"></dd>
-                <dd class="metric-detail">Na superfície</dd>
+                <dd class="metric-context">Pressão que o ar exerce na superfície do local, em hectopascais (hPa).</dd>
               </div>
             </dl>
           </section>
@@ -213,41 +231,54 @@
               <div class="panel metric">
                 <dt><span aria-hidden="true">☂</span> Chance de precipitação</dt>
                 <dd class="percent-reading"><span class="percent-ring" aria-hidden="true" hidden></span><span class="precipitation"></span></dd>
-                <dd class="metric-detail">Maior probabilidade horária do dia</dd>
+                <dd class="metric-context">Maior chance horária de precipitação hoje. O percentual indica a chance de ocorrer, e o acumulado indica a quantidade.</dd>
               </div>
               <div class="panel metric">
                 <dt><span aria-hidden="true">☀</span> Índice UV</dt>
                 <dd class="uv-index"></dd>
                 <dd class="metric-detail">Máximo previsto para o dia</dd>
                 <dd class="metric-detail">Estimativa para esta hora: <span class="uv-hourly"></span></dd>
+                <dd class="metric-context">Intensidade da radiação ultravioleta solar.</dd>
+                <dd class="metric-context uv-guidance" hidden></dd>
+                <dd><details class="weather-explanation">
+                  <summary>Faixas do índice UV</summary>
+                  <p>O índice é arredondado ao inteiro mais próximo. Baixo: 0 a 2. Moderado: 3 a 5. Alto: 6 a 7. Muito alto: 8 a 10. Extremo: 11 ou mais.</p>
+                  <p><a href="https://www.who.int/news-room/questions-and-answers/item/radiation-the-ultraviolet-(uv)-index">Orientações da Organização Mundial da Saúde</a></p>
+                </details></dd>
               </div>
               <div class="panel metric">
                 <dt><span aria-hidden="true">◐</span> Nascer e pôr do sol</dt>
                 <dd class="metric-pair"><span><small>Nascer</small><span class="sunrise"></span></span><span><small>Pôr</small><span class="sunset"></span></span></dd>
+                <dd class="metric-detail">Duração da luz do dia: <span class="daylight-duration"></span></dd>
+                <dd class="metric-context">Intervalo entre o nascer e o pôr do sol. Os horários usam o fuso da cidade.</dd>
               </div>
               <div class="panel metric">
                 <dt><span aria-hidden="true">↕</span> Temperaturas do dia</dt>
                 <dd class="metric-pair"><span><small>Máxima</small><span class="temperature-max"></span></span><span><small>Mínima</small><span class="temperature-min"></span></span></dd>
+                <dd class="metric-context">Maior e menor temperatura do ar previstas para o dia local.</dd>
               </div>
             </dl>
           </section>
         </div>
 
         <section class="panel forecast" aria-labelledby="forecast-title">
-          <h2 id="forecast-title">Previsão semanal</h2>
+          <div class="panel-heading">
+            <h2 id="forecast-title">Previsão semanal</h2>
+            <a href="#calendario">Abrir calendário</a>
+          </div>
           <p class="forecast-range" hidden></p>
           <ol class="forecast-list"></ol>
           <p class="forecast-status" hidden>Previsão semanal indisponível.</p>
-          <div class="forecast-detail" id="detalhes-do-dia" tabindex="-1" aria-labelledby="titulo-detalhes-do-dia" role="region" hidden>
-            <h3 id="titulo-detalhes-do-dia"></h3>
-            <p class="forecast-detail-summary"></p>
-            <p class="forecast-detail-extra"></p>
-            <a href="#graficos">Ver gráficos do dia</a>
-          </div>
         </section>
-        <section id="graficos" class="panel charts" aria-labelledby="charts-title" tabindex="-1">
+      </div>
+      </section>
+
+      <section id="graficos" data-page aria-labelledby="charts-title" tabindex="-1" hidden>
+        <header class="page-heading"><h1 id="charts-title">Gráficos da previsão</h1><p class="charts-location"></p></header>
+        <p class="panel charts-unavailable" hidden>Busque uma cidade para consultar os gráficos da previsão.</p>
+        <div class="panel charts forecast-charts" hidden>
           <div class="charts-header">
-            <div><h2 id="charts-title">Gráficos da previsão</h2><p class="chart-period"></p></div>
+            <div><h2 class="chart-metric-title"></h2><p class="chart-period"></p></div>
             <div class="chart-controls">
               <button class="control chart-reset" type="button" disabled>Próximas 24 h</button>
               <label class="sr-only" for="chart-metric">Métrica do gráfico</label>
@@ -260,18 +291,18 @@
               </select>
             </div>
           </div>
+          <p class="metric-context chart-context" id="chart-context"></p>
           <p class="chart-empty" hidden>Dados indisponíveis para esta métrica no período selecionado.</p>
           <div class="chart-content">
             <p class="chart-reading" id="chart-reading"></p>
             <canvas class="chart-canvas" aria-hidden="true"></canvas>
             <label class="chart-scrubber">Horário no gráfico
-              <input class="chart-hour" type="range" min="0" max="0" value="0" aria-describedby="chart-reading">
+              <input class="chart-hour" type="range" min="0" max="0" value="0" aria-describedby="chart-context">
             </label>
           </div>
-        </section>
-      </div>
-      </div>
-      <section id="comparar" class="comparison" aria-labelledby="compare-title" tabindex="-1" hidden>
+        </div>
+      </section>
+      <section id="comparar" data-page class="comparison" aria-labelledby="compare-title" tabindex="-1" hidden>
         <header class="page-heading compare-heading">
           <h1 id="compare-title">Comparar cidades</h1>
           <button class="control compare-swap" type="button" disabled><span aria-hidden="true">⇄</span> Trocar cidades</button>
@@ -281,7 +312,8 @@
 
         <section class="panel compare-differences" aria-labelledby="difference-title" hidden>
           <h2 id="difference-title">Diferença entre cidades</h2>
-          <p>Os valores mostram Cidade B menos Cidade A. Para percentuais, a diferença é em pontos percentuais (p.p.).</p>
+          <p>Os valores mostram Cidade B menos Cidade A. Um sinal positivo indica valor maior em B. Um sinal negativo indica valor menor. As variações visíveis após o arredondamento ficam em destaque.</p>
+          <p>Para percentuais, a diferença é em pontos percentuais (p.p.). Por exemplo, de 40% para 50% são 10 p.p.</p>
           <p class="difference-context"></p>
           <dl class="difference-values"></dl>
         </section>
@@ -298,13 +330,15 @@
               <option value="cloud_cover">Cobertura de nuvens</option>
             </select>
           </div>
+          <h3 class="chart-metric-title"></h3>
+          <p class="metric-context chart-context" id="compare-chart-context"></p>
           <ul class="compare-legend"><li>Cidade A</li><li>Cidade B</li></ul>
           <p class="chart-empty" hidden>Não há dados horários para esta métrica.</p>
           <div class="chart-content">
             <p class="chart-reading" id="compare-chart-reading"></p>
             <canvas class="chart-canvas" aria-hidden="true"></canvas>
             <label class="chart-scrubber">Faixa de hora local
-              <input class="chart-hour" type="range" min="0" max="0" value="0" aria-describedby="compare-chart-reading">
+              <input class="chart-hour" type="range" min="0" max="0" value="0" aria-describedby="compare-chart-context">
             </label>
           </div>
         </section>
@@ -333,32 +367,35 @@
           </div>
         </article>
       </template>
-      <section id="mapas" class="environment" aria-labelledby="map-title" tabindex="-1" hidden>
+      <section id="mapas" data-page class="environment" aria-labelledby="map-title" tabindex="-1" hidden>
         <header class="page-heading"><h1 id="map-title">Mapas</h1><p class="environment-place map-place"></p></header>
         <p class="map-status status" role="status"></p>
+        <button class="control map-retry" type="button" hidden>Tentar carregar o mapa novamente</button>
         <div class="map-grid" hidden>
           <div class="panel map-panel">
-            <p id="map-instructions">Clique no mapa para consultar um ponto. Com o mapa em foco, use as setas para navegar e as teclas + e − para alterar o zoom.</p>
+            <p id="map-instructions">Clique ou toque em um ponto para consultar as condições atuais. Pelo teclado, mova o mapa com as setas, use + ou − para alterar o zoom e acione <strong>Consultar centro do mapa</strong>.</p>
             <div class="map-canvas" aria-label="Mapa interativo da região" aria-describedby="map-instructions" role="region"></div>
             <div class="map-controls">
               <button class="control map-center" type="button">Voltar à cidade</button>
               <button class="control map-inspect" type="button">Consultar centro do mapa</button>
             </div>
+            <p class="map-report"><a href="https://www.openstreetmap.org/fixthemap">Relatar um problema no mapa</a></p>
           </div>
           <section class="panel map-point" aria-labelledby="map-point-title">
             <h2 id="map-point-title">Tempo no ponto</h2>
             <p class="map-point-status" role="status">Selecione um ponto no mapa para consultar o tempo atual.</p>
+            <p class="map-point-coordinates" hidden></p>
             <div class="map-point-data" hidden>
-              <p class="map-point-coordinates"></p>
               <p class="map-point-condition"></p>
+              <p class="map-point-time"></p>
               <dl class="map-point-values"></dl>
             </div>
+            <p class="metric-context">As condições do ponto vêm da <a href="https://open-meteo.com/">Open-Meteo</a>. As imagens de fundo mostram a região.</p>
           </section>
         </div>
-        <button class="control map-retry" type="button" hidden>Tentar novamente</button>
       </section>
 
-      <section id="qualidade-do-ar" class="environment" aria-labelledby="air-title" tabindex="-1" hidden>
+      <section id="qualidade-do-ar" data-page class="environment" aria-labelledby="air-title" tabindex="-1" hidden>
         <header class="page-heading"><h1 id="air-title">Qualidade do ar</h1><p class="environment-place air-place"></p></header>
         <p class="air-status status" role="status"></p>
         <button class="control air-retry" type="button" hidden>Tentar novamente</button>
@@ -374,9 +411,16 @@
           </div>
           <p class="air-time"></p>
           <dl class="air-metrics">
-            <div class="panel metric"><dt class="air-index-label">Índice de qualidade do ar</dt><dd class="air-index"></dd><dd class="metric-detail air-category"></dd></div>
-            <div class="panel metric"><dt>Material particulado fino (PM₂,₅)</dt><dd class="air-pm25"></dd></div>
-            <div class="panel metric"><dt>Material particulado (PM₁₀)</dt><dd class="air-pm10"></dd></div>
+            <div class="panel metric">
+              <dt class="air-index-label">Índice de qualidade do ar</dt><dd class="air-index"></dd><dd class="metric-detail air-category"></dd>
+              <dd class="metric-context">Resume as concentrações de poluentes em uma pontuação. Valores maiores indicam pior qualidade do ar na escala escolhida.</dd>
+              <dd><details class="weather-explanation">
+                <summary>Faixas da escala selecionada</summary>
+                <ul class="air-bands"></ul>
+              </details></dd>
+            </div>
+            <div class="panel metric"><dt>Material particulado fino (PM₂,₅)</dt><dd class="air-pm25"></dd><dd class="metric-context">Concentração de partículas com diâmetro aerodinâmico de até 2,5 µm, em microgramas por metro cúbico.</dd></div>
+            <div class="panel metric"><dt>Material particulado (PM₁₀)</dt><dd class="air-pm10"></dd><dd class="metric-context">Concentração de partículas com diâmetro aerodinâmico de até 10 µm, em microgramas por metro cúbico.</dd></div>
           </dl>
           <section class="panel charts air-chart" aria-labelledby="air-chart-title">
             <div class="charts-header">
@@ -389,12 +433,14 @@
                 <option value="pm10" data-unit="µg/m³">PM₁₀</option>
               </select>
             </div>
+            <h3 class="chart-metric-title"></h3>
+            <p class="metric-context chart-context" id="air-chart-context"></p>
             <p class="chart-empty" hidden>Dados horários indisponíveis para esta métrica.</p>
             <div class="chart-content">
               <p class="chart-reading" id="air-chart-reading"></p>
               <canvas class="chart-canvas" aria-hidden="true"></canvas>
               <label class="chart-scrubber">Horário da leitura
-                <input class="chart-hour" type="range" min="0" max="0" value="0" aria-describedby="air-chart-reading">
+                <input class="chart-hour" type="range" min="0" max="0" value="0" aria-describedby="air-chart-context">
               </label>
             </div>
           </section>

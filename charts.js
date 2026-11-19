@@ -1,3 +1,15 @@
+const chartDescriptions = {
+  temperature_2m: "Temperatura do ar prevista a 2 m do solo.",
+  wind_speed_10m: "Velocidade do vento prevista a 10 m do solo.",
+  precipitation_probability: "Chance de mais de 0,1 mm de precipitação na hora que termina no horário indicado.",
+  relative_humidity_2m: "Vapor de água previsto em relação ao limite de saturação, na temperatura do horário indicado.",
+  cloud_cover: "Parcela estimada do céu coberta por nuvens.",
+  us_aqi: "Estimativas recentes na escala de qualidade do ar dos Estados Unidos, em pontos.",
+  european_aqi: "Estimativas recentes na escala europeia de qualidade do ar, em pontos.",
+  pm2_5: "Concentração estimada de partículas de até 2,5 µm de diâmetro aerodinâmico.",
+  pm10: "Concentração estimada de partículas de até 10 µm de diâmetro aerodinâmico.",
+};
+
 class ForecastChart {
   constructor(panel, formatReading) {
     this.panel = panel;
@@ -7,6 +19,8 @@ class ForecastChart {
     this.metric = panel.querySelector("select");
     this.range = panel.querySelector(".chart-hour");
     this.reading = panel.querySelector(".chart-reading");
+    this.title = panel.querySelector(".chart-metric-title");
+    this.description = panel.querySelector(".chart-context");
     this.content = panel.querySelector(".chart-content");
     this.empty = panel.querySelector(".chart-empty");
     this.samples = [];
@@ -47,9 +61,13 @@ class ForecastChart {
   }
 
   refresh() {
+    const metric = this.metric.value;
+    this.title.textContent = this.metric.selectedOptions[0].textContent + " (" + this.unit + ")";
+    this.description.textContent = chartDescriptions[metric] +
+      " Passe o cursor, toque no gráfico ou use o controle de horário para consultar cada leitura.";
     this.values = this.series.length
-      ? this.series.map((_, index) => this.samples.map((sample) => sample.cities[index]?.[this.metric.value]))
-      : [this.samples.map((sample) => sample[this.metric.value])];
+      ? this.series.map((_, index) => this.samples.map((sample) => sample.cities[index]?.[metric]))
+      : [this.samples.map((sample) => sample[metric])];
     this.values = this.values.map((values) => values.map((value) => convertReading(value, this.baseUnit)));
     const available = this.values.some((values) => values.some(Number.isFinite));
     this.empty.hidden = available;

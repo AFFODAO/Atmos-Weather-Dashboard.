@@ -26,6 +26,9 @@ const cidades = [
 
 window.consultas = [];
 window.consultasCanceladas = [];
+window.pedidosDeMosaico = [];
+window.estadoDosMosaicos = "normal";
+window.falharTempoNoPonto = false;
 window.falharQualidadeDoAr = false;
 window.resultadoGeolocalizacao = "permitido";
 Object.defineProperty(navigator, "geolocation", {
@@ -56,6 +59,16 @@ function aguardarResposta(ms, signal, chave) {
 
 window.fetch = async (url, { signal } = {}) => {
   const { hostname, searchParams } = new URL(url);
+  if (hostname === "tile.openstreetmap.org") {
+    window.pedidosDeMosaico.push(String(url));
+    if (window.estadoDosMosaicos === "sem rede") throw new TypeError("Rede de mosaicos indisponível.");
+    const status = window.estadoDosMosaicos === "bloqueado" ? 403 : window.estadoDosMosaicos === "limitado" ? 429 : 200;
+    const imagem = '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#d1cbe5"/></svg>';
+    return new Response(imagem, { status, headers: { "Content-Type": "image/svg+xml", "Retry-After": "90" } });
+  }
+  if (window.falharTempoNoPonto && searchParams.get("current")?.split(",").length === 5) {
+    return Response.json({ error: true }, { status: 503 });
+  }
   const chave = searchParams.get("name") ?? hostname + ":" + searchParams.get("latitude");
   window.consultas.push(chave);
   if (hostname.startsWith("geocoding")) {
@@ -103,14 +116,21 @@ window.fetch = async (url, { signal } = {}) => {
     current: {
       time: agora, temperature_2m: temperatura, apparent_temperature: temperatura + 1,
       wind_speed_10m: 16.09344, wind_gusts_10m: 32.18688, weather_code: 0,
+      relative_humidity_2m: 58, wind_direction_10m: 90, cloud_cover: 35,
+      surface_pressure: 1008, precipitation: 0.6, interval: 900,
     },
     daily: {
       time: dias, weather_code: [0, 61], temperature_2m_max: [temperatura + 5, temperatura + 7],
       temperature_2m_min: [temperatura - 2, temperatura], precipitation_probability_max: [10, 80],
+      uv_index_max: [latitude === 0 ? 2 : 8, 11],
+      sunrise: [inicio + 6 * 3600, inicio + 30 * 3600],
+      sunset: [inicio + 18.5 * 3600, inicio + 42.5 * 3600],
     },
     hourly: {
       time: horas, temperature_2m: horas.map(() => temperatura),
       wind_speed_10m: horas.map(() => 16.09344), weather_code: horas.map(() => 0),
+      uv_index: horas.map(() => 3), precipitation_probability: horas.map(() => 25),
+      relative_humidity_2m: horas.map(() => 58), cloud_cover: horas.map(() => 35),
     },
   });
 };
