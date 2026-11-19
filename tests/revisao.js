@@ -404,13 +404,64 @@ async function testarContexto() {
   await abrir("#painel");
   exigir(texto(".temperature-label") === "Temperatura do ar" && texto(".feels-like").includes("Sensação térmica"),
     "Diferencie a temperatura do ar da sensação térmica.");
-  const ajudaTemperatura = buscar(".current details");
-  ajudaTemperatura.querySelector("summary").focus();
-  clicar(".current summary");
-  exigir(ajudaTemperatura.open && ajudaTemperatura.textContent.includes("radiação solar") &&
-    quadro.contentDocument.activeElement === ajudaTemperatura.querySelector("summary"), "Abra a explicação mantendo o foco.");
-  clicar(".current summary");
-  exigir(!ajudaTemperatura.open, "A explicação pode ser recolhida.");
+  const ajuda = (id) => {
+    const painel = buscar("#explicacao-" + id);
+    return { painel, botao: buscar('[aria-controls="' + painel.id + '"]') };
+  };
+  const temperatura = ajuda("temperatura");
+  const umidade = ajuda("humidity");
+  const vento = ajuda("wind");
+  const horario = ajuda("horaria");
+  const semanal = ajuda("semanal");
+  const recolhida = ({ painel, botao }) => painel.inert && botao.getAttribute("aria-expanded") === "false";
+  const expandida = ({ painel, botao }) => !painel.inert && botao.getAttribute("aria-expanded") === "true";
+  for (const item of quadro.contentDocument.querySelectorAll(".weather .explanation-toggle")) {
+    const painel = buscar("#" + item.getAttribute("aria-controls"));
+    exigir(item.tagName === "BUTTON" && item.tabIndex === 0 && painel &&
+      recolhida({ painel, botao: item }) && painel.getBoundingClientRect().height === 0,
+    "Disponibilize um botão de teclado e recolha a explicação inicialmente.");
+  }
+  temperatura.botao.focus();
+  temperatura.botao.click();
+  exigir(expandida(temperatura) && temperatura.painel.textContent.includes("radiação solar") &&
+    quadro.contentDocument.activeElement === temperatura.botao, "Abra a explicação mantendo o foco.");
+  temperatura.botao.click();
+  exigir(recolhida(temperatura), "A explicação pode ser recolhida.");
+  const cartaoUmidade = umidade.botao.closest(".metric");
+  const cartaoVento = vento.botao.closest(".metric");
+  const alturaUmidade = cartaoUmidade.getBoundingClientRect().height;
+  const alturaVento = cartaoVento.getBoundingClientRect().height;
+  umidade.botao.click();
+  await esperar(() => umidade.painel.getBoundingClientRect().height > 0, "Mostre o conteúdo da explicação aberta.");
+  exigir(cartaoVento.getBoundingClientRect().height === alturaVento,
+    "Abrir um cartão não deve aumentar a altura do cartão vizinho.");
+  vento.botao.click();
+  exigir(expandida(umidade) && expandida(vento) && recolhida(horario) && recolhida(semanal),
+    "Expanda cada cartão independentemente das outras explicações.");
+  vento.botao.click();
+  exigir(expandida(umidade) && recolhida(vento), "Recolha apenas a explicação acionada.");
+  const leituras = [".temp", ".humidity", ".wind", ".cloud-cover", ".surface-pressure",
+    ".precipitation", ".uv-index", ".sunrise", ".sunset", ".temperature-max", ".temperature-min"];
+  await navegar("configuracoes");
+  mudar("#theme-preference", "dark");
+  await navegar("painel");
+  for (const tema of ["dark", "light"]) {
+    exigir(buscar("html").dataset.theme === tema, "Aplique o tema " + tema + ".");
+    for (const largura of [1280, 350, 320]) {
+      quadro.style.width = largura + "px";
+      await esperar(() => janela().innerWidth === largura, "Redimensione o painel.");
+      verificarLargura(largura);
+      for (const seletor of leituras) {
+        const leitura = buscar(seletor);
+        exigir(leitura.getBoundingClientRect().height > 0 && /\d/.test(leitura.textContent) &&
+          !leitura.closest(".explanation-panel"), "Mantenha visível a leitura de " + seletor + ".");
+      }
+      for (const cartao of quadro.contentDocument.querySelectorAll(".weather .metric")) {
+        exigir(cartao.scrollWidth <= cartao.clientWidth, "Acomode o conteúdo dentro do cartão.");
+      }
+    }
+    if (tema === "dark") clicar(".theme-button");
+  }
   for (const [leitura, valor, descricao] of [
     [".humidity", "58%", "saturação"],
     [".wind", "16,1 km/h", "de onde"],
@@ -426,9 +477,14 @@ async function testarContexto() {
   }
   exigir(texto(".precipitation-interval").includes("15 min") && texto(".wind-direction").includes("90°"),
     "Identifique o intervalo do acumulado e a direção em graus.");
-  exigir(texto(".uv-index") === "2 · Baixo" && buscar(".uv-guidance").hidden, "Use a faixa baixa quando o índice for 2.");
+  exigir(texto(".uv-index") === "2 Baixo" && buscar(".uv-guidance").hidden, "Use a faixa baixa quando o índice for 2.");
   await consultar("Recife");
-  exigir(texto(".uv-index") === "8 · Muito alto" && texto(".uv-hourly") === "3 · Moderado" &&
+  exigir(expandida(umidade) && texto(".humidity") === "58%", "Atualize os dados sem recolher o cartão aberto.");
+  umidade.botao.click();
+  await esperar(() => umidade.painel.getBoundingClientRect().height === 0, "Recolha todo o espaço da explicação.");
+  exigir(cartaoUmidade.getBoundingClientRect().height <= alturaUmidade,
+    "Restaure a altura compacta depois de recolher a explicação.");
+  exigir(texto(".uv-index") === "8 Muito alto" && texto(".uv-hourly") === "3 · Moderado" &&
     texto(".uv-guidance").includes("perto do meio-dia"), "Atualize a classificação e a orientação ao trocar de cidade.");
   for (const [valor, faixa] of [[0, "Baixo"], [3, "Moderado"], [6, "Alto"], [8, "Muito alto"], [11, "Extremo"]]) {
     exigir(janela().eval("describeUv(" + valor + ").reading").endsWith(faixa), "Confira o limite da faixa " + faixa + ".");
@@ -460,18 +516,42 @@ async function testarContexto() {
     "A unidade do título e da leitura deve mudar para mph.");
   await navegar("qualidade-do-ar");
   await esperar(() => !buscar(".air-data").hidden, "Carregue a escala de qualidade do ar.");
-  clicar(".air-data summary");
-  exigir(buscar(".air-data details").open && texto(".air-bands").includes("acima de 300"), "Exiba as faixas dos EUA.");
+  const indiceAr = ajuda("air-index");
+  indiceAr.botao.click();
+  exigir(expandida(indiceAr) && recolhida(ajuda("air-pm10")) && texto(".air-bands").includes("acima de 300"),
+    "Exiba as faixas dos EUA de forma independente das outras leituras do ar.");
   mudar("#air-scale", "european_aqi");
-  exigir(texto(".air-bands").includes("acima de 100") && texto(".air-category") === "Razoável" &&
+  exigir(expandida(indiceAr) && texto(".air-bands").includes("acima de 100") && texto(".air-category") === "Razoável" &&
     texto(".air-pm10") === "11 µg/m³" && texto(".air-index").includes("pts"), "Diferencie categorias, pontos e concentrações.");
   mudar("#air-chart-metric", "pm10");
   exigir(texto("#air-chart-context").includes("10 µm") && texto(".air-chart .chart-period").includes("Últimas 24 horas"),
     "Explique a métrica e o período histórico de qualidade do ar.");
   verificarLargura(320);
+  janela().ajustarRelogio("2026-11-19T02:30:00.456Z");
+  for (const [cidade, dia, chuva, uv, maxima, minima] of [
+    ["Fernando de Noronha", "2026-11-19", "10%", "8 Muito alto", "203 °F", "190,4 °F"],
+    ["Rio Branco", "2026-11-18", "0%", "0 Baixo", "221 °F", "32 °F"],
+  ]) {
+    await consultar(cidade);
+    exigir(janela().eval("displayedForecast.today") === dia, "Use a data local de " + cidade + " com milissegundos.");
+    exigir(texto(".precipitation") === chuva && texto(".uv-index") === uv &&
+      texto(".uv-hourly") === "3 · Moderado", "Mostre chuva e UV diário e horário de " + cidade + ".");
+    exigir(texto(".sunrise") === "06:00" && texto(".sunset") === "18:30" &&
+      texto(".daylight-duration") === "12 h 30 min", "Mostre os horários solares locais de " + cidade + ".");
+    exigir(texto(".temperature-max") === maxima && texto(".temperature-min") === minima,
+      "Converta as temperaturas do dia local de " + cidade + " para Fahrenheit.");
+  }
+  janela().ajustarRelogio("2026-11-19T05:00:00.456Z");
+  janela().eval("displayDailyMetrics(new Date())");
+  exigir(janela().eval("displayedForecast.today") === "2026-11-19" && texto(".precipitation") === "80%" &&
+    texto(".uv-index") === "11 Extremo" && texto(".temperature-max") === "224,6 °F" &&
+    texto(".temperature-min") === "212 °F", "Na virada local, mostre os valores alinhados à segunda data da previsão.");
   await consultar("Parcial");
   exigir(texto(".uv-index") === "Indisponível" && buscar(".uv-guidance").hidden &&
-    texto(".daylight-duration") === "Indisponível", "Sem dados, não mostre classificações nem durações.");
+    texto(".precipitation") === "Indisponível" && texto(".sunrise") === "Indisponível" &&
+    texto(".sunset") === "Indisponível" && texto(".daylight-duration") === "Indisponível" &&
+    texto(".temperature-max") === "77 °F" && texto(".temperature-min") === "Indisponível",
+    "Em uma previsão parcial, preserve a máxima e sinalize somente as leituras ausentes.");
   exigir(janela().errosDoATMOS.length === 0, "O navegador deve concluir a etapa sem erros.");
   resultado.textContent += " Contexto meteorológico, classificações, unidades e detalhes expansíveis.";
 }

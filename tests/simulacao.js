@@ -19,6 +19,8 @@ const cidades = [
   ["Vazia", "America/Recife", -3],
   ["Devagar", "America/Recife", -3],
   ["Nova York", "America/New_York", -4, "Nova York", "Estados Unidos"],
+  ["Fernando de Noronha", "America/Noronha", -2, "Pernambuco", "Brasil"],
+  ["Rio Branco", "America/Rio_Branco", -5, "Acre", "Brasil"],
 ].map(([name, timezone, offset, admin1, country], index) => ({
   id: index + 1, name, latitude: index, longitude: index,
   timezone, offset, admin1, country,
@@ -82,7 +84,7 @@ window.fetch = async (url, { signal } = {}) => {
   const latitude = Number(searchParams.get("latitude"));
   const cidade = cidades[latitude] ?? cidades[1];
   const temperatura = latitude * 10;
-  const agora = instante / 1000;
+  const agora = Math.floor(instante / 1000);
   const deslocamento = cidade.offset * 3600;
   const inicio = Math.floor((agora + deslocamento) / 86400) * 86400 - deslocamento;
 
@@ -121,8 +123,9 @@ window.fetch = async (url, { signal } = {}) => {
     },
     daily: {
       time: dias, weather_code: [0, 61], temperature_2m_max: [temperatura + 5, temperatura + 7],
-      temperature_2m_min: [temperatura - 2, temperatura], precipitation_probability_max: [10, 80],
-      uv_index_max: [latitude === 0 ? 2 : 8, 11],
+      temperature_2m_min: [cidade.name === "Rio Branco" ? 0 : temperatura - 2, temperatura],
+      precipitation_probability_max: [cidade.name === "Rio Branco" ? 0 : 10, 80],
+      uv_index_max: [cidade.name === "Rio Branco" ? 0 : latitude === 0 ? 2 : 8, 11],
       sunrise: [inicio + 6 * 3600, inicio + 30 * 3600],
       sunset: [inicio + 18.5 * 3600, inicio + 42.5 * 3600],
     },

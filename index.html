@@ -160,7 +160,7 @@
       <noscript>Ative o JavaScript no navegador para consultar a previsão do tempo.</noscript>
 
       <div class="dashboard weather" hidden>
-        <div class="overview">
+        <div class="current-overview">
           <section class="panel current" aria-labelledby="current-title">
             <div class="weather-art" aria-hidden="true"><span class="icon"></span></div>
             <div class="current-content">
@@ -172,23 +172,17 @@
               <p class="description"></p>
               <p class="feels-like"></p>
               <p class="observation-time"></p>
-              <details class="weather-explanation">
-                <summary>Temperatura e sensação térmica</summary>
-                <p>A temperatura indica o quanto o ar está quente ou frio. A sensação térmica estima como ele é percebido, considerando vento, umidade e radiação solar.</p>
-              </details>
+              <div class="weather-explanation">
+                <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-temperatura" aria-label="Saiba mais sobre temperatura e sensação térmica">Saiba mais</button>
+                <div id="explicacao-temperatura" class="explanation-panel" inert>
+                  <div class="explanation-inner">
+                    <p>A temperatura indica o quanto o ar está quente ou frio. A sensação térmica estima como ele é percebido, considerando vento, umidade e radiação solar.</p>
+                  </div>
+                </div>
+              </div>
             </div>
             <button class="control favorite-toggle" type="button" aria-label="Cidade favorita"
               aria-pressed="false" title="Salvar cidade como favorita" hidden><span aria-hidden="true">♡</span></button>
-          </section>
-
-          <section class="panel hourly" aria-labelledby="hourly-title">
-            <div class="panel-heading">
-              <h2 id="hourly-title">Próximas 24 horas</h2>
-              <a class="hourly-charts-link" href="#graficos">Ver gráficos por hora</a>
-            </div>
-            <p class="metric-context">A chance de precipitação se refere à hora que termina no horário indicado.</p>
-            <ol class="hourly-list" tabindex="0" aria-label="Previsão horária no fuso da cidade"></ol>
-            <p class="hourly-status" hidden></p>
           </section>
 
           <section aria-labelledby="metrics-title">
@@ -197,69 +191,146 @@
               <div class="panel metric">
                 <dt><span aria-hidden="true">◈</span> Umidade relativa</dt>
                 <dd class="percent-reading"><span class="percent-ring" aria-hidden="true" hidden></span><span class="humidity"></span></dd>
-                <dd class="metric-context">Vapor de água no ar em relação ao limite de saturação na temperatura atual. Em 100%, o ar está saturado.</dd>
+                <dd class="weather-explanation">
+                  <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-humidity" aria-label="Saiba mais sobre umidade relativa">Saiba mais</button>
+                  <div id="explicacao-humidity" class="explanation-panel" inert>
+                    <div class="explanation-inner">
+                      <p class="metric-context">Vapor de água no ar em relação ao limite de saturação na temperatura atual. Em 100%, o ar está saturado.</p>
+                    </div>
+                  </div>
+                </dd>
               </div>
               <div class="panel metric">
                 <dt><span aria-hidden="true">≋</span> Vento</dt>
                 <dd class="wind-reading"><span class="compass" aria-hidden="true" hidden><span>N</span><span class="compass-needle">↑</span></span><span class="wind"></span></dd>
                 <dd class="metric-detail">Direção de origem: <span class="wind-direction"></span></dd>
                 <dd class="metric-detail">Rajadas: <span class="wind-gusts"></span></dd>
-                <dd class="metric-context">A direção indica de onde o vento vem. Rajadas são aumentos breves da velocidade.</dd>
+                <dd class="weather-explanation">
+                  <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-wind" aria-label="Saiba mais sobre vento">Saiba mais</button>
+                  <div id="explicacao-wind" class="explanation-panel" inert>
+                    <div class="explanation-inner">
+                      <p class="metric-context">A direção indica de onde o vento vem. Rajadas são aumentos breves da velocidade.</p>
+                    </div>
+                  </div>
+                </dd>
               </div>
               <div class="panel metric">
                 <dt><span aria-hidden="true">☂</span> Precipitação acumulada</dt>
                 <dd class="precipitation-amount"></dd>
                 <dd class="metric-detail precipitation-interval" hidden></dd>
-                <dd class="metric-context">Quantidade acumulada, em milímetros de água equivalente.</dd>
+                <dd class="weather-explanation">
+                  <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-precipitation-amount" aria-label="Saiba mais sobre a precipitação acumulada">Saiba mais</button>
+                  <div id="explicacao-precipitation-amount" class="explanation-panel" inert>
+                    <div class="explanation-inner">
+                      <p class="metric-context">Quantidade acumulada, em milímetros de água equivalente.</p>
+                    </div>
+                  </div>
+                </dd>
               </div>
               <div class="panel metric">
                 <dt><span aria-hidden="true">☁</span> Cobertura de nuvens</dt>
                 <dd class="percent-reading"><span class="percent-ring" aria-hidden="true" hidden></span><span class="cloud-cover"></span></dd>
-                <dd class="metric-context">Parcela estimada do céu coberta por nuvens, de 0% a 100%.</dd>
+                <dd class="weather-explanation">
+                  <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-cloud-cover" aria-label="Saiba mais sobre cobertura de nuvens">Saiba mais</button>
+                  <div id="explicacao-cloud-cover" class="explanation-panel" inert>
+                    <div class="explanation-inner">
+                      <p class="metric-context">Parcela estimada do céu coberta por nuvens, de 0% a 100%.</p>
+                    </div>
+                  </div>
+                </dd>
               </div>
               <div class="panel metric">
                 <dt><span aria-hidden="true">◉</span> Pressão atmosférica</dt>
                 <dd class="surface-pressure"></dd>
-                <dd class="metric-context">Pressão que o ar exerce na superfície do local, em hectopascais (hPa).</dd>
-              </div>
-            </dl>
-          </section>
-
-          <section aria-labelledby="daily-title">
-            <h2 id="daily-title" class="metrics-title">Previsão para hoje</h2>
-            <dl class="metric-grid">
-              <div class="panel metric">
-                <dt><span aria-hidden="true">☂</span> Chance de precipitação</dt>
-                <dd class="percent-reading"><span class="percent-ring" aria-hidden="true" hidden></span><span class="precipitation"></span></dd>
-                <dd class="metric-context">Maior chance horária de precipitação hoje. O percentual indica a chance de ocorrer, e o acumulado indica a quantidade.</dd>
-              </div>
-              <div class="panel metric">
-                <dt><span aria-hidden="true">☀</span> Índice UV</dt>
-                <dd class="uv-index"></dd>
-                <dd class="metric-detail">Máximo previsto para o dia</dd>
-                <dd class="metric-detail">Estimativa para esta hora: <span class="uv-hourly"></span></dd>
-                <dd class="metric-context">Intensidade da radiação ultravioleta solar.</dd>
-                <dd class="metric-context uv-guidance" hidden></dd>
-                <dd><details class="weather-explanation">
-                  <summary>Faixas do índice UV</summary>
-                  <p>O índice é arredondado ao inteiro mais próximo. Baixo: 0 a 2. Moderado: 3 a 5. Alto: 6 a 7. Muito alto: 8 a 10. Extremo: 11 ou mais.</p>
-                  <p><a href="https://www.who.int/news-room/questions-and-answers/item/radiation-the-ultraviolet-(uv)-index">Orientações da Organização Mundial da Saúde</a></p>
-                </details></dd>
-              </div>
-              <div class="panel metric">
-                <dt><span aria-hidden="true">◐</span> Nascer e pôr do sol</dt>
-                <dd class="metric-pair"><span><small>Nascer</small><span class="sunrise"></span></span><span><small>Pôr</small><span class="sunset"></span></span></dd>
-                <dd class="metric-detail">Duração da luz do dia: <span class="daylight-duration"></span></dd>
-                <dd class="metric-context">Intervalo entre o nascer e o pôr do sol. Os horários usam o fuso da cidade.</dd>
-              </div>
-              <div class="panel metric">
-                <dt><span aria-hidden="true">↕</span> Temperaturas do dia</dt>
-                <dd class="metric-pair"><span><small>Máxima</small><span class="temperature-max"></span></span><span><small>Mínima</small><span class="temperature-min"></span></span></dd>
-                <dd class="metric-context">Maior e menor temperatura do ar previstas para o dia local.</dd>
+                <dd class="weather-explanation">
+                  <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-surface-pressure" aria-label="Saiba mais sobre a pressão atmosférica">Saiba mais</button>
+                  <div id="explicacao-surface-pressure" class="explanation-panel" inert>
+                    <div class="explanation-inner">
+                      <p class="metric-context">Pressão que o ar exerce na superfície do local, em hectopascais (hPa).</p>
+                    </div>
+                  </div>
+                </dd>
               </div>
             </dl>
           </section>
         </div>
+
+        <section aria-labelledby="daily-title">
+          <h2 id="daily-title" class="metrics-title">Previsão para hoje</h2>
+          <dl class="metric-grid">
+            <div class="panel metric">
+              <dt><span aria-hidden="true">☂</span> Chance de precipitação</dt>
+              <dd class="percent-reading"><span class="percent-ring" aria-hidden="true" hidden></span><span class="precipitation"></span></dd>
+              <dd class="weather-explanation">
+                <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-precipitation" aria-label="Saiba mais sobre a chance de precipitação">Saiba mais</button>
+                <div id="explicacao-precipitation" class="explanation-panel" inert>
+                  <div class="explanation-inner">
+                    <p class="metric-context">Maior chance horária de precipitação hoje. O percentual indica a chance de ocorrer, e o acumulado indica a quantidade.</p>
+                  </div>
+                </div>
+              </dd>
+            </div>
+            <div class="panel metric">
+              <dt><span aria-hidden="true">☀</span> Índice UV</dt>
+              <dd class="uv-index"></dd>
+              <dd class="metric-detail">Máximo do dia</dd>
+              <dd class="metric-detail">Nesta hora: <span class="uv-hourly"></span></dd>
+              <dd class="weather-explanation">
+                <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-uv-index" aria-label="Saiba mais sobre o índice UV">Saiba mais</button>
+                <div id="explicacao-uv-index" class="explanation-panel" inert>
+                  <div class="explanation-inner">
+                    <p class="metric-context">Intensidade da radiação ultravioleta solar.</p>
+                    <p class="metric-context uv-guidance" hidden></p>
+                    <p>O índice é arredondado ao inteiro mais próximo. Baixo: 0 a 2. Moderado: 3 a 5. Alto: 6 a 7. Muito alto: 8 a 10. Extremo: 11 ou mais.</p>
+                    <p><a href="https://www.who.int/news-room/questions-and-answers/item/radiation-the-ultraviolet-(uv)-index">Orientações da Organização Mundial da Saúde</a></p>
+                  </div>
+                </div>
+              </dd>
+            </div>
+            <div class="panel metric">
+              <dt><span aria-hidden="true">◐</span> Nascer e pôr do sol</dt>
+              <dd class="metric-pair"><span><small>Nascer</small><span class="sunrise"></span></span><span><small>Pôr</small><span class="sunset"></span></span></dd>
+              <dd class="metric-detail">Luz do dia: <span class="daylight-duration"></span></dd>
+              <dd class="weather-explanation">
+                <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-sunrise" aria-label="Saiba mais sobre o nascer e pôr do sol">Saiba mais</button>
+                <div id="explicacao-sunrise" class="explanation-panel" inert>
+                  <div class="explanation-inner">
+                    <p class="metric-context">Intervalo entre o nascer e o pôr do sol. Os horários usam o fuso da cidade.</p>
+                  </div>
+                </div>
+              </dd>
+            </div>
+            <div class="panel metric">
+              <dt><span aria-hidden="true">↕</span> Temperaturas do dia</dt>
+              <dd class="metric-pair"><span><small>Máxima</small><span class="temperature-max"></span></span><span><small>Mínima</small><span class="temperature-min"></span></span></dd>
+              <dd class="weather-explanation">
+                <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-temperature-max" aria-label="Saiba mais sobre temperaturas do dia">Saiba mais</button>
+                <div id="explicacao-temperature-max" class="explanation-panel" inert>
+                  <div class="explanation-inner">
+                    <p class="metric-context">Maior e menor temperatura do ar previstas para o dia local.</p>
+                  </div>
+                </div>
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="panel hourly" aria-labelledby="hourly-title">
+          <div class="panel-heading">
+            <h2 id="hourly-title">Próximas 24 horas</h2>
+            <a class="hourly-charts-link" href="#graficos">Ver gráficos por hora</a>
+          </div>
+          <ol class="hourly-list" tabindex="0" aria-label="Previsão horária no fuso da cidade"></ol>
+          <p class="hourly-status" hidden></p>
+          <div class="weather-explanation">
+            <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-horaria" aria-label="Saiba mais sobre a previsão por hora">Saiba mais</button>
+            <div id="explicacao-horaria" class="explanation-panel" inert>
+              <div class="explanation-inner">
+                <p class="metric-context">A chance de precipitação se refere à hora que termina no horário indicado.</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <section class="panel forecast" aria-labelledby="forecast-title">
           <div class="panel-heading">
@@ -269,6 +340,14 @@
           <p class="forecast-range" hidden></p>
           <ol class="forecast-list"></ol>
           <p class="forecast-status" hidden>Previsão semanal indisponível.</p>
+          <div class="weather-explanation">
+            <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-semanal" aria-label="Saiba mais sobre a previsão semanal">Saiba mais</button>
+            <div id="explicacao-semanal" class="explanation-panel" inert>
+              <div class="explanation-inner">
+                <p class="metric-context">Cada dia mostra as temperaturas máxima e mínima e a maior chance horária de precipitação. Selecione uma data para consultar os horários do sol e o índice UV.</p>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
       </section>
@@ -291,7 +370,14 @@
               </select>
             </div>
           </div>
-          <p class="metric-context chart-context" id="chart-context"></p>
+          <div class="weather-explanation">
+            <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-chart-context" aria-label="Saiba mais sobre o gráfico por hora">Saiba mais</button>
+            <div id="explicacao-chart-context" class="explanation-panel" inert>
+              <div class="explanation-inner">
+                <p class="metric-context chart-context" id="chart-context"></p>
+              </div>
+            </div>
+          </div>
           <p class="chart-empty" hidden>Dados indisponíveis para esta métrica no período selecionado.</p>
           <div class="chart-content">
             <p class="chart-reading" id="chart-reading"></p>
@@ -331,7 +417,14 @@
             </select>
           </div>
           <h3 class="chart-metric-title"></h3>
-          <p class="metric-context chart-context" id="compare-chart-context"></p>
+          <div class="weather-explanation">
+            <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-compare-chart-context" aria-label="Saiba mais sobre o gráfico comparativo">Saiba mais</button>
+            <div id="explicacao-compare-chart-context" class="explanation-panel" inert>
+              <div class="explanation-inner">
+                <p class="metric-context chart-context" id="compare-chart-context"></p>
+              </div>
+            </div>
+          </div>
           <ul class="compare-legend"><li>Cidade A</li><li>Cidade B</li></ul>
           <p class="chart-empty" hidden>Não há dados horários para esta métrica.</p>
           <div class="chart-content">
@@ -412,15 +505,43 @@
           <p class="air-time"></p>
           <dl class="air-metrics">
             <div class="panel metric">
-              <dt class="air-index-label">Índice de qualidade do ar</dt><dd class="air-index"></dd><dd class="metric-detail air-category"></dd>
-              <dd class="metric-context">Resume as concentrações de poluentes em uma pontuação. Valores maiores indicam pior qualidade do ar na escala escolhida.</dd>
-              <dd><details class="weather-explanation">
-                <summary>Faixas da escala selecionada</summary>
-                <ul class="air-bands"></ul>
-              </details></dd>
+              <dt><span aria-hidden="true">◈</span><span class="air-index-label">Índice de qualidade do ar</span></dt>
+              <dd class="air-index"></dd>
+              <dd class="metric-detail air-category"></dd>
+              <dd class="weather-explanation">
+                <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-air-index" aria-label="Saiba mais sobre o índice de qualidade do ar">Saiba mais</button>
+                <div id="explicacao-air-index" class="explanation-panel" inert>
+                  <div class="explanation-inner">
+                    <p class="metric-context">Resume as concentrações de poluentes em uma pontuação. Valores maiores indicam pior qualidade do ar na escala escolhida.</p>
+                    <ul class="air-bands"></ul>
+                  </div>
+                </div>
+              </dd>
             </div>
-            <div class="panel metric"><dt>Material particulado fino (PM₂,₅)</dt><dd class="air-pm25"></dd><dd class="metric-context">Concentração de partículas com diâmetro aerodinâmico de até 2,5 µm, em microgramas por metro cúbico.</dd></div>
-            <div class="panel metric"><dt>Material particulado (PM₁₀)</dt><dd class="air-pm10"></dd><dd class="metric-context">Concentração de partículas com diâmetro aerodinâmico de até 10 µm, em microgramas por metro cúbico.</dd></div>
+            <div class="panel metric">
+              <dt><span aria-hidden="true">⠿</span>Material particulado fino (PM₂,₅)</dt>
+              <dd class="air-pm25"></dd>
+              <dd class="weather-explanation">
+                <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-air-pm25" aria-label="Saiba mais sobre material particulado fino">Saiba mais</button>
+                <div id="explicacao-air-pm25" class="explanation-panel" inert>
+                  <div class="explanation-inner">
+                    <p class="metric-context">Concentração de partículas com diâmetro aerodinâmico de até 2,5 µm, em microgramas por metro cúbico.</p>
+                  </div>
+                </div>
+              </dd>
+            </div>
+            <div class="panel metric">
+              <dt><span aria-hidden="true">⠿</span>Material particulado (PM₁₀)</dt>
+              <dd class="air-pm10"></dd>
+              <dd class="weather-explanation">
+                <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-air-pm10" aria-label="Saiba mais sobre material particulado PM₁₀">Saiba mais</button>
+                <div id="explicacao-air-pm10" class="explanation-panel" inert>
+                  <div class="explanation-inner">
+                    <p class="metric-context">Concentração de partículas com diâmetro aerodinâmico de até 10 µm, em microgramas por metro cúbico.</p>
+                  </div>
+                </div>
+              </dd>
+            </div>
           </dl>
           <section class="panel charts air-chart" aria-labelledby="air-chart-title">
             <div class="charts-header">
@@ -434,7 +555,14 @@
               </select>
             </div>
             <h3 class="chart-metric-title"></h3>
-            <p class="metric-context chart-context" id="air-chart-context"></p>
+            <div class="weather-explanation">
+              <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-air-chart-context" aria-label="Saiba mais sobre o gráfico da qualidade do ar">Saiba mais</button>
+              <div id="explicacao-air-chart-context" class="explanation-panel" inert>
+                <div class="explanation-inner">
+                  <p class="metric-context chart-context" id="air-chart-context"></p>
+                </div>
+              </div>
+            </div>
             <p class="chart-empty" hidden>Dados horários indisponíveis para esta métrica.</p>
             <div class="chart-content">
               <p class="chart-reading" id="air-chart-reading"></p>

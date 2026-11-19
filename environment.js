@@ -344,10 +344,10 @@ const airIndexes = {
 const airFields = "us_aqi,european_aqi,pm2_5,pm10";
 
 class AirQuality {
-  constructor(panel, { fetchJson, formatReading }) {
+  constructor(panel, { fetchJson, formatReading, displayMetricReading }) {
     this.panel = panel;
     this.fetchJson = fetchJson;
-    this.formatReading = formatReading;
+    this.displayMetricReading = displayMetricReading;
     this.place = panel.querySelector(".air-place");
     this.status = panel.querySelector(".air-status");
     this.retry = panel.querySelector(".air-retry");
@@ -434,8 +434,8 @@ class AirQuality {
     this.retry.hidden = available;
     if (!available) return false;
     this.renderIndex();
-    this.panel.querySelector(".air-pm25").textContent = this.formatReading(this.current.pm2_5, " µg/m³");
-    this.panel.querySelector(".air-pm10").textContent = this.formatReading(this.current.pm10, " µg/m³");
+    this.displayMetricReading(this.panel.querySelector(".air-pm25"), this.current.pm2_5, " µg/m³");
+    this.displayMetricReading(this.panel.querySelector(".air-pm10"), this.current.pm10, " µg/m³");
     this.panel.querySelector(".air-time").textContent = isTimestamp(result?.current?.time)
       ? "Estimativa atual: " + date.format(result.current.time * 1000) + " · " + timezone
       : "Horário da estimativa atual indisponível.";
@@ -451,7 +451,7 @@ class AirQuality {
     const value = Number.isFinite(raw) && raw >= 0 ? raw : undefined;
     const level = index.limits.findIndex((limit) => value <= limit);
     this.panel.querySelector(".air-index-label").textContent = index.name;
-    this.panel.querySelector(".air-index").textContent = this.formatReading(value, " pts");
+    this.displayMetricReading(this.panel.querySelector(".air-index"), value, " pts");
     this.panel.querySelector(".air-category").textContent = value === undefined
       ? "Categoria indisponível."
       : index.labels[level < 0 ? index.labels.length - 1 : level];

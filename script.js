@@ -37,6 +37,15 @@ let displayedWeather;
 const locationCache = new Map();
 const pendingLocations = new Map();
 
+document.addEventListener("click", (event) => {
+  const button = event.target.closest(".explanation-toggle");
+  if (!button) return;
+  const expanded = button.getAttribute("aria-expanded") === "false";
+  const panel = document.getElementById(button.getAttribute("aria-controls"));
+  button.setAttribute("aria-expanded", String(expanded));
+  panel.inert = !expanded;
+});
+
 function setWeatherStatus(state, message = "") {
   const loading = state === "loading";
   refreshButton.disabled = loading;
@@ -50,13 +59,28 @@ function setWeatherStatus(state, message = "") {
 }
 
 function formatReading(value, unit, difference = false) {
-  if (!Number.isFinite(value)) return "Indisponível";
+  const reading = readingParts(value, unit, difference);
+  return reading ? reading.value + reading.suffix : "Indisponível";
+}
+
+function readingParts(value, unit, difference = false) {
+  if (!Number.isFinite(value)) return undefined;
   const key = unit.trim();
   const formatter = difference ? differenceFormat : numberFormat;
   const converted = convertReading(value, key, difference);
-  if (!Number.isFinite(converted)) return "Indisponível";
-  return formatter.format(converted) +
-    (unit.startsWith(" ") ? " " : "") + readingUnit(key);
+  if (!Number.isFinite(converted)) return undefined;
+  return { value: formatter.format(converted), suffix: (unit.startsWith(" ") ? " " : "") + readingUnit(key) };
+}
+
+function displayMetricReading(label, value, unit, category = "") {
+  const reading = readingParts(value, unit);
+  label.classList.toggle("reading-unavailable", !reading);
+  label.textContent = reading?.value ?? "Indisponível";
+  if (!reading || (!reading.suffix && !category)) return;
+  const suffix = document.createElement("span");
+  suffix.className = "metric-unit";
+  suffix.textContent = category ? " " + category : reading.suffix;
+  label.append(suffix);
 }
 
 function describeUv(value) {
@@ -68,7 +92,7 @@ function describeUv(value) {
     : index >= 3
       ? "Procure sombra perto do meio-dia e use roupa protetora, chapéu, óculos de sol e protetor solar."
       : "";
-  return { reading: formatReading(index, "") + " · " + category, guidance };
+  return { reading: formatReading(index, "") + " · " + category, index, category, guidance };
 }
 
 function describeDaylight(sunrise, sunset) {
@@ -117,11 +141,17 @@ function getLocalTime(timestamp) {
   return getLocalParts(timestamp).time ?? "Indisponível";
 }
 
+function displaySolarTime(label, timestamp) {
+  const time = getLocalParts(timestamp).time;
+  label.classList.toggle("reading-unavailable", !time);
+  label.textContent = time ?? "Indisponível";
+}
+
 function displayPercentage(selector, value) {
   const label = weatherPanel.querySelector(selector);
   const ring = label.previousElementSibling;
   const available = Number.isFinite(value) && value >= 0 && value <= 100;
-  label.textContent = formatReading(available ? value : null, "%");
+  displayMetricReading(label, available ? value : null, "%");
   ring.hidden = !available;
   if (available) ring.style.setProperty("--fill", value + "%");
 }
@@ -389,7 +419,7 @@ function displayCurrentWeather(location, current) {
     : "Dados de " + shortDateFormat.format(observedDate) + " às " + observation.time + " (horário local)";
   displayPercentage(".humidity", relative_humidity_2m);
   displayPercentage(".cloud-cover", current.cloud_cover);
-  weatherPanel.querySelector(".wind").textContent = formatReading(wind_speed_10m, " km/h");
+  displayMetricReading(weatherPanel.querySelector(".wind"), wind_speed_10m, " km/h");
   weatherPanel.querySelector(".wind-gusts").textContent = formatReading(current.wind_gusts_10m, " km/h");
   const direction = current.wind_direction_10m;
   const compass = weatherPanel.querySelector(".compass");
@@ -400,8 +430,8 @@ function displayCurrentWeather(location, current) {
   weatherPanel.querySelector(".wind-direction").textContent = validDirection
     ? bearings[Math.round(direction / 45) % bearings.length] + " · " + formatReading(direction, "°")
     : "Indisponível";
-  weatherPanel.querySelector(".surface-pressure").textContent = formatReading(current.surface_pressure, " hPa");
-  weatherPanel.querySelector(".precipitation-amount").textContent = formatReading(current.precipitation, " mm");
+  displayMetricReading(weatherPanel.querySelector(".surface-pressure"), current.surface_pressure, " hPa");
+  displayMetricReading(weatherPanel.querySelector(".precipitation-amount"), current.precipitation, " mm");
   const interval = weatherPanel.querySelector(".precipitation-interval");
   const showInterval = Number.isFinite(current.precipitation) && Number.isFinite(current.interval) && current.interval > 0;
   interval.hidden = !showInterval;
@@ -412,7 +442,7 @@ function displayCurrentWeather(location, current) {
 
 function displayDailyMetrics(now, newForecast = false, unitsChanged = false) {
   const { daily, samples } = displayedForecast;
-  const timestamp = now.getTime() / 1000;
+  const timestamp = Math.floor(now.getTime() / 1000);
   const current = samples.findLast((sample) => sample.timestamp <= timestamp && timestamp - sample.timestamp < 3600);
   const today = getLocalParts(timestamp).day;
   const oldDay = displayedForecast.today;
@@ -430,18 +460,18 @@ function displayDailyMetrics(now, newForecast = false, unitsChanged = false) {
   const dayIndex = Array.isArray(daily?.time) && today ? daily.time.indexOf(today) : -1;
   displayPercentage(".precipitation", daily?.precipitation_probability_max?.[dayIndex]);
   const uv = describeUv(daily?.uv_index_max?.[dayIndex]);
-  weatherPanel.querySelector(".uv-index").textContent = uv.reading;
+  displayMetricReading(weatherPanel.querySelector(".uv-index"), uv.index, "", uv.category);
   weatherPanel.querySelector(".uv-hourly").textContent = describeUv(current?.uv_index).reading;
   const guidance = weatherPanel.querySelector(".uv-guidance");
   guidance.hidden = !uv.guidance;
   guidance.textContent = uv.guidance;
   const sunrise = daily?.sunrise?.[dayIndex];
   const sunset = daily?.sunset?.[dayIndex];
-  weatherPanel.querySelector(".sunrise").textContent = getLocalTime(sunrise);
-  weatherPanel.querySelector(".sunset").textContent = getLocalTime(sunset);
+  displaySolarTime(weatherPanel.querySelector(".sunrise"), sunrise);
+  displaySolarTime(weatherPanel.querySelector(".sunset"), sunset);
   weatherPanel.querySelector(".daylight-duration").textContent = describeDaylight(sunrise, sunset);
-  weatherPanel.querySelector(".temperature-max").textContent = formatReading(daily?.temperature_2m_max?.[dayIndex], " °C");
-  weatherPanel.querySelector(".temperature-min").textContent = formatReading(daily?.temperature_2m_min?.[dayIndex], " °C");
+  displayMetricReading(weatherPanel.querySelector(".temperature-max"), daily?.temperature_2m_max?.[dayIndex], " °C");
+  displayMetricReading(weatherPanel.querySelector(".temperature-min"), daily?.temperature_2m_min?.[dayIndex], " °C");
   if (newForecast || unitsChanged || oldDay !== today) displayForecast(daily, today, tomorrow);
   if (newForecast || unitsChanged || oldDay !== today || !selectedDay) {
     selectForecastDay(selectedDay, !unitsChanged || oldDay !== today || selectionExpired);
@@ -590,7 +620,7 @@ const comparison = new WeatherComparison(comparePanel, { fetchLocations, fetchFo
 const mapPanel = document.querySelector("#mapas");
 const airPanel = document.querySelector("#qualidade-do-ar");
 const weatherMap = new WeatherMap(mapPanel, { fetchJson, describeWeather, formatReading });
-const airQuality = new AirQuality(airPanel, { fetchJson, formatReading });
+const airQuality = new AirQuality(airPanel, { fetchJson, formatReading, displayMetricReading });
 
 if (isCity(storedPreferences?.defaultCity)) preferences.defaultCity = storedPreferences.defaultCity;
 const settingsFeedback = settingsPanel.querySelector(".settings-feedback");
