@@ -105,7 +105,6 @@
       <section id="calendario" data-page aria-labelledby="calendar-title" tabindex="-1" hidden>
         <header class="page-heading"><h1 id="calendar-title">Calendário da previsão</h1><p class="calendar-location"></p></header>
         <div class="panel calendar-panel">
-          <p class="metric-context calendar-availability">Somente datas com previsão disponível na Open-Meteo aparecem aqui. Se uma data não aparece, a previsão está indisponível.</p>
           <p class="calendar-status" role="status">Aguardando dados da previsão.</p>
           <ol class="calendar-days" aria-label="Dias com previsão disponível"></ol>
           <div class="forecast-detail" id="detalhes-calendario" tabindex="-1" aria-labelledby="dia-calendario" role="region" hidden>
@@ -114,6 +113,10 @@
             <p class="forecast-detail-extra"></p>
             <a href="#graficos">Ver gráficos do dia</a>
           </div>
+          <details class="page-help">
+            <summary>Datas disponíveis</summary>
+            <p class="metric-context calendar-availability">Somente datas com previsão disponível na Open-Meteo aparecem aqui. Se uma data não aparece, a previsão está indisponível.</p>
+          </details>
         </div>
       </section>
 
@@ -143,7 +146,7 @@
                 </label>
                 <label>Período do dia
                   <select class="control" name="period">
-                    <option value="qualquer">Qualquer horário</option><option value="madrugada">Madrugada</option>
+                    <option value="diurno">Horário diurno</option><option value="qualquer">Qualquer horário</option><option value="madrugada">Madrugada</option>
                     <option value="manhã">Manhã</option><option value="tarde">Tarde</option><option value="noite">Noite</option>
                   </select>
                 </label>
@@ -162,7 +165,7 @@
             <ol class="planner-results"></ol>
             <template>
               <li>
-                <header><span class="planner-icon" aria-hidden="true"></span><div><h3></h3><p class="planner-condition"></p></div>
+                <header><span class="planner-icon" aria-hidden="true"></span><div><h3></h3><p class="planner-period"></p><p class="planner-condition"></p></div>
                   <span class="planner-score"></span></header>
                 <dl><div><dt>Temperatura</dt><dd class="planner-temperature"></dd></div>
                   <div><dt>Chance de chuva</dt><dd class="planner-rain"></dd></div></dl>
@@ -175,6 +178,7 @@
               <summary>Como a pontuação é calculada</summary>
               <p class="planner-limits metric-context"></p>
               <p class="metric-context">A nota compara temperatura, chance de chuva, vento, rajadas, UV e condições do céu com os critérios da atividade. Leituras ausentes reduzem a nota. A pontuação é uma estimativa de adequação às preferências.</p>
+              <p class="metric-context">O horário diurno vai das 06h às 19h no fuso da cidade e considera a indicação de luz do dia da previsão quando disponível. Em qualquer horário, as janelas diurnas vêm primeiro. A corrida favorece o início da manhã e o fim da tarde, e períodos próximos ganham vantagem quando as condições são parecidas.</p>
               <p class="metric-context">Cada hora precisa ter temperatura e chance de chuva disponíveis. O planejador deixa de fora períodos com chuva intensa, calor elevado ou condições previstas além de céu limpo a encoberto.</p>
             </details>
           </section>
@@ -183,20 +187,23 @@
 
       <section id="configuracoes" data-page aria-labelledby="settings-title" tabindex="-1" hidden>
         <header class="page-heading"><h1 id="settings-title">Configurações</h1></header>
-        <div class="panel settings-panel">
-          <div class="settings-preferences">
-            <label for="temperature-unit">Unidade de temperatura
-              <select id="temperature-unit" class="control"><option value="celsius">Celsius (°C)</option><option value="fahrenheit">Fahrenheit (°F)</option></select>
-            </label>
-            <label for="wind-unit">Unidade de velocidade do vento
-              <select id="wind-unit" class="control"><option value="kmh">Quilômetros por hora (km/h)</option><option value="mph">Milhas por hora (mph)</option></select>
-            </label>
-            <label for="theme-preference">Tema
-              <select id="theme-preference" class="control"><option value="system">Seguir o sistema</option><option value="light">Claro</option><option value="dark">Escuro</option></select>
-            </label>
-          </div>
-          <div class="settings-group">
-            <h2>Cidade padrão</h2>
+        <div class="settings-panel">
+          <section class="panel settings-section settings-display" aria-labelledby="settings-display-title">
+            <h2 id="settings-display-title">Unidades e aparência</h2>
+            <div class="settings-preferences">
+              <label for="temperature-unit">Unidade de temperatura
+                <select id="temperature-unit" class="control"><option value="celsius">Celsius (°C)</option><option value="fahrenheit">Fahrenheit (°F)</option></select>
+              </label>
+              <label for="wind-unit">Unidade de velocidade do vento
+                <select id="wind-unit" class="control"><option value="kmh">Quilômetros por hora (km/h)</option><option value="mph">Milhas por hora (mph)</option></select>
+              </label>
+              <label for="theme-preference">Tema
+                <select id="theme-preference" class="control"><option value="system">Seguir o sistema</option><option value="light">Claro</option><option value="dark">Escuro</option></select>
+              </label>
+            </div>
+          </section>
+          <section class="panel settings-section settings-group" aria-labelledby="settings-city-title">
+            <h2 id="settings-city-title">Cidade padrão</h2>
             <p class="default-city-label"></p>
             <form class="search default-city-search" role="search" aria-label="Buscar cidade padrão">
               <label class="sr-only" for="default-city-search">Nome da cidade padrão</label>
@@ -209,14 +216,14 @@
               </div>
             </form>
             <button class="control reset-default-city" type="button">Usar a última cidade consultada</button>
-          </div>
-          <div class="settings-group">
-            <h2>Dados salvos neste navegador</h2>
+          </section>
+          <section class="panel settings-section settings-group" aria-labelledby="settings-storage-title">
+            <h2 id="settings-storage-title">Dados salvos neste navegador</h2>
             <div class="settings-actions">
               <button class="control clear-history" type="button" disabled>Limpar buscas recentes</button>
               <button class="control clear-favorites" type="button" disabled>Limpar favoritos</button>
             </div>
-          </div>
+          </section>
           <p class="settings-feedback" role="status"></p>
         </div>
       </section>
@@ -241,7 +248,7 @@
       </section>
 
       <section id="painel" data-page aria-labelledby="dashboard-title" tabindex="-1">
-      <header class="page-heading">
+      <header class="page-heading dashboard-heading">
         <h1 id="dashboard-title">Visão geral</h1>
         <p class="current-date"></p>
       </header>
@@ -258,21 +265,27 @@
       <div class="dashboard weather" hidden>
         <div class="current-overview">
           <section class="panel current" aria-labelledby="current-title">
-            <div class="weather-art" aria-hidden="true"><span class="icon"></span></div>
             <div class="current-content">
-              <h2 id="current-title">Condições atuais</h2>
-              <p class="city"></p>
-              <p class="region" hidden></p>
-              <p class="temperature-label">Temperatura do ar</p>
-              <p class="temp"></p>
-              <p class="description"></p>
-              <p class="feels-like"></p>
-              <p class="observation-time"></p>
-              <div class="weather-explanation">
-                <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-temperatura" aria-label="Saiba mais sobre temperatura e sensação térmica">Saiba mais</button>
-                <div id="explicacao-temperatura" class="explanation-panel" inert>
-                  <div class="explanation-inner">
-                    <p>A temperatura indica o quanto o ar está quente ou frio. A sensação térmica estima como ele é percebido, considerando vento, umidade e radiação solar.</p>
+              <div class="current-primary">
+                <h2 id="current-title">Condições atuais</h2>
+                <p class="city"></p>
+                <p class="region" hidden></p>
+                <p class="temperature-label">Temperatura do ar</p>
+                <p class="temp"></p>
+              </div>
+              <div class="current-secondary">
+                <div class="weather-art" aria-hidden="true"><span class="icon"></span></div>
+                <p class="description"></p>
+                <p class="feels-like"></p>
+              </div>
+              <div class="current-meta">
+                <p class="observation-time"></p>
+                <div class="weather-explanation">
+                  <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-temperatura" aria-label="Saiba mais sobre temperatura e sensação térmica">Saiba mais</button>
+                  <div id="explicacao-temperatura" class="explanation-panel" inert>
+                    <div class="explanation-inner">
+                      <p>A temperatura indica o quanto o ar está quente ou frio. A sensação térmica estima como ele é percebido, considerando vento, umidade e radiação solar.</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -351,6 +364,39 @@
           </section>
         </div>
 
+        <section class="panel hourly" aria-labelledby="hourly-title">
+          <div class="panel-heading">
+            <h2 id="hourly-title">Próximas 24 horas</h2>
+            <div class="hourly-actions">
+              <button class="control timeline-reset" type="button" hidden>Voltar às próximas 24 horas</button>
+              <a class="hourly-charts-link" href="#graficos">Ver gráficos por hora</a>
+            </div>
+          </div>
+          <p class="sr-only" id="hourly-keyboard">Use as setas para navegar entre os horários. Início e Fim vão para as extremidades da previsão.</p>
+          <ol class="hourly-list" aria-label="Selecione um horário da previsão" aria-describedby="hourly-keyboard"></ol>
+          <p class="hourly-status" hidden></p>
+          <section class="hourly-detail" id="detalhes-horarios" aria-labelledby="hourly-detail-title" hidden>
+            <h3 id="hourly-detail-title" tabindex="-1">Previsão para <time aria-live="polite"></time></h3>
+            <dl>
+              <div><dt>Temperatura</dt><dd data-hourly="temperature_2m"></dd></div>
+              <div><dt>Condições</dt><dd data-hourly="weather_code"></dd></div>
+              <div><dt>Umidade relativa</dt><dd data-hourly="relative_humidity_2m"></dd></div>
+              <div><dt>Vento</dt><dd data-hourly="wind_speed_10m"></dd></div>
+              <div><dt>Chance de precipitação</dt><dd data-hourly="precipitation_probability"></dd></div>
+              <div><dt>Índice UV</dt><dd data-hourly="uv_index"></dd></div>
+              <div><dt>Cobertura de nuvens</dt><dd data-hourly="cloud_cover"></dd></div>
+            </dl>
+          </section>
+          <div class="weather-explanation">
+            <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-horaria" aria-label="Saiba mais sobre a previsão por hora">Saiba mais</button>
+            <div id="explicacao-horaria" class="explanation-panel" inert>
+              <div class="explanation-inner">
+                <p class="metric-context">A chance de precipitação se refere à hora que termina no horário indicado.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section class="daily-metrics" aria-labelledby="daily-title">
           <h2 id="daily-title" class="metrics-title">Previsão para hoje</h2>
           <dl class="metric-grid">
@@ -411,63 +457,6 @@
           </dl>
         </section>
 
-        <section class="panel insights" aria-labelledby="insights-title">
-          <h2 id="insights-title">ATMOS Insights</h2>
-          <p class="insights-summary"></p>
-          <p class="insights-note">Sugestões para as próximas 24 horas, com base na previsão local.</p>
-          <p class="insights-empty" hidden></p>
-          <ul class="insights-list"></ul>
-          <template>
-            <li>
-              <span class="insights-icon" aria-hidden="true"></span>
-              <div>
-                <h3></h3>
-                <p class="insights-time"></p>
-                <p class="insights-advice"></p>
-                <button class="insights-hour" type="button" aria-controls="detalhes-horarios">Ver horário</button>
-              </div>
-            </li>
-          </template>
-          <details class="insights-method">
-            <summary>Como as sugestões são calculadas</summary>
-            <p class="insights-criteria metric-context"></p>
-            <p class="metric-context">Os horários são locais e as condições podem mudar.</p>
-          </details>
-        </section>
-
-        <section class="panel hourly" aria-labelledby="hourly-title">
-          <div class="panel-heading">
-            <h2 id="hourly-title">Próximas 24 horas</h2>
-            <div class="hourly-actions">
-              <button class="control timeline-reset" type="button" hidden>Voltar às próximas 24 horas</button>
-              <a class="hourly-charts-link" href="#graficos">Ver gráficos por hora</a>
-            </div>
-          </div>
-          <p class="sr-only" id="hourly-keyboard">Use as setas para navegar entre os horários. Início e Fim vão para as extremidades da previsão.</p>
-          <ol class="hourly-list" aria-label="Selecione um horário da previsão" aria-describedby="hourly-keyboard"></ol>
-          <p class="hourly-status" hidden></p>
-          <section class="hourly-detail" id="detalhes-horarios" aria-labelledby="hourly-detail-title" hidden>
-            <h3 id="hourly-detail-title" tabindex="-1">Previsão para <time aria-live="polite"></time></h3>
-            <dl>
-              <div><dt>Temperatura</dt><dd data-hourly="temperature_2m"></dd></div>
-              <div><dt>Condições</dt><dd data-hourly="weather_code"></dd></div>
-              <div><dt>Umidade relativa</dt><dd data-hourly="relative_humidity_2m"></dd></div>
-              <div><dt>Vento</dt><dd data-hourly="wind_speed_10m"></dd></div>
-              <div><dt>Chance de precipitação</dt><dd data-hourly="precipitation_probability"></dd></div>
-              <div><dt>Índice UV</dt><dd data-hourly="uv_index"></dd></div>
-              <div><dt>Cobertura de nuvens</dt><dd data-hourly="cloud_cover"></dd></div>
-            </dl>
-          </section>
-          <div class="weather-explanation">
-            <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-horaria" aria-label="Saiba mais sobre a previsão por hora">Saiba mais</button>
-            <div id="explicacao-horaria" class="explanation-panel" inert>
-              <div class="explanation-inner">
-                <p class="metric-context">A chance de precipitação se refere à hora que termina no horário indicado.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section class="panel forecast" aria-labelledby="forecast-title">
           <div class="panel-heading">
             <h2 id="forecast-title">Previsão semanal</h2>
@@ -484,6 +473,34 @@
               </div>
             </div>
           </div>
+        </section>
+
+        <section class="panel insights" aria-labelledby="insights-title">
+          <h2 id="insights-title">ATMOS Insights</h2>
+          <p class="insights-summary"></p>
+          <p class="insights-empty" hidden></p>
+          <ul class="insights-list insights-preview"></ul>
+          <details class="page-help insights-more" hidden>
+            <summary>Mais sugestões</summary>
+            <ul class="insights-list insights-extra"></ul>
+          </details>
+          <template>
+            <li>
+              <span class="insights-icon" aria-hidden="true"></span>
+              <div>
+                <h3></h3>
+                <p class="insights-time"></p>
+                <p class="insights-advice"></p>
+                <button class="insights-hour" type="button" aria-controls="detalhes-horarios">Ver horário</button>
+              </div>
+            </li>
+          </template>
+          <details class="page-help insights-method">
+            <summary>Como as sugestões são calculadas</summary>
+            <p class="metric-context">Sugestões para as próximas 24 horas, com base na previsão local.</p>
+            <p class="insights-criteria metric-context"></p>
+            <p class="metric-context">Os horários são locais e as condições podem mudar.</p>
+          </details>
         </section>
       </div>
       </section>
@@ -535,10 +552,13 @@
 
         <section class="panel compare-differences" aria-labelledby="difference-title" hidden>
           <h2 id="difference-title">Diferença entre cidades</h2>
-          <p>Os valores mostram Cidade B menos Cidade A. Um sinal positivo indica valor maior em B. Um sinal negativo indica valor menor. As variações visíveis após o arredondamento ficam em destaque.</p>
-          <p>Para percentuais, a diferença é em pontos percentuais (p.p.). Por exemplo, de 40% para 50% são 10 p.p.</p>
           <p class="difference-context"></p>
           <dl class="difference-values"></dl>
+          <details class="page-help">
+            <summary>Como ler as diferenças</summary>
+            <p>Os valores mostram Cidade B menos Cidade A. Um sinal positivo indica valor maior em B. Um sinal negativo indica valor menor. As variações visíveis após o arredondamento ficam em destaque.</p>
+            <p>Para percentuais, a diferença é em pontos percentuais (p.p.). Por exemplo, de 40% para 50% são 10 p.p.</p>
+          </details>
         </section>
 
         <section class="panel charts compare-charts" aria-labelledby="compare-chart-title" hidden>
@@ -603,12 +623,15 @@
         <button class="control map-retry" type="button" hidden>Tentar carregar o mapa novamente</button>
         <div class="map-grid" hidden>
           <div class="panel map-panel">
-            <p id="map-instructions">Clique ou toque em um ponto para consultar as condições atuais. Pelo teclado, mova o mapa com as setas, use + ou − para alterar o zoom e acione <strong>Consultar centro do mapa</strong>.</p>
             <div class="map-canvas" aria-label="Mapa interativo da região" aria-describedby="map-instructions" role="region"></div>
             <div class="map-controls">
               <button class="control map-center" type="button">Voltar à cidade</button>
               <button class="control map-inspect" type="button">Consultar centro do mapa</button>
             </div>
+            <details class="page-help">
+              <summary>Como usar o mapa</summary>
+              <p class="metric-context" id="map-instructions">Clique ou toque em um ponto para consultar as condições atuais. Pelo teclado, mova o mapa com as setas, use + ou − para alterar o zoom e acione <strong>Consultar centro do mapa</strong>.</p>
+            </details>
             <p class="map-report"><a href="https://www.openstreetmap.org/fixthemap">Relatar um problema no mapa</a></p>
           </div>
           <section class="panel map-point" aria-labelledby="map-point-title">

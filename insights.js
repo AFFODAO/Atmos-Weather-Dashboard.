@@ -99,9 +99,12 @@ function renderWeatherInsights(panel, daily, dayIndex, samples) {
     ? "As leituras disponíveis não indicam recomendações pelos critérios abaixo."
     : "Previsão horária insuficiente para recomendar um horário.";
   const template = panel.querySelector("template");
-  const list = panel.querySelector(".insights-list");
-  const focused = list.contains(document.activeElement) ? document.activeElement : undefined;
-  list.replaceChildren(...entries.map((entry) => {
+  const preview = panel.querySelector(".insights-preview");
+  const more = panel.querySelector(".insights-more");
+  const extra = more.querySelector(".insights-extra");
+  const active = document.activeElement;
+  const focused = active.closest(".insights-list") ? active.getAttribute("aria-label") : undefined;
+  const items = entries.map((entry) => {
     const item = template.content.cloneNode(true);
     item.querySelector(".insights-icon").textContent = entry.icon;
     item.querySelector("h3").textContent = entry.title;
@@ -111,11 +114,22 @@ function renderWeatherInsights(panel, daily, dayIndex, samples) {
     button.dataset.timestamp = entry.sample.timestamp;
     button.setAttribute("aria-label", "Ver previsão para " + entry.sample.label + " · " + entry.title);
     return item;
-  }));
+  });
+  preview.replaceChildren(...items.slice(0, 1));
+  extra.replaceChildren(...items.slice(1));
+  const remaining = Math.max(entries.length - 1, 0);
+  more.hidden = remaining === 0;
+  if (more.hidden) more.open = false;
+  const moreToggle = more.querySelector("summary");
+  moreToggle.textContent = remaining === 1 ? "Mais 1 sugestão" : "Mais " + remaining + " sugestões";
   if (focused) {
-    const replacement = Array.from(list.querySelectorAll("button"))
-      .find((button) => button.getAttribute("aria-label") === focused.getAttribute("aria-label"));
-    (replacement ?? panel.querySelector("summary")).focus({ preventScroll: true });
+    const replacement = Array.from(panel.querySelectorAll(".insights-hour"))
+      .find((button) => button.getAttribute("aria-label") === focused);
+    if (replacement && extra.contains(replacement)) more.open = true;
+    (replacement ?? (more.hidden ? panel.querySelector(".insights-method summary") : moreToggle))
+      .focus({ preventScroll: true });
+  } else if (active === moreToggle && more.hidden) {
+    panel.querySelector(".insights-method summary").focus({ preventScroll: true });
   }
   panel.querySelector(".insights-criteria").textContent =
     "Chuva a partir de " + formatReading(insightRules.rain, "%") + ", UV a partir de " + insightRules.uv +

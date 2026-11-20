@@ -105,6 +105,32 @@ async function testarPlanejador() {
   const links = () => [...quadro.contentDocument.querySelectorAll(".planner-results a")];
   const campo = (nome) => '#planejador [name="' + nome + '"]';
   const aplicar = () => buscar(".planner-form").requestSubmit();
+  exigir(buscar(campo("period")).value === "diurno", "Use o horário diurno nas preferências novas.");
+  const ranking = janela().eval(`(() => {
+    const amostra = (hora, extra = {}) => {
+      const time = String(hora % 24).padStart(2, "0") + ":00";
+      return { timestamp: hora * 3600, day: "2026-11-" + (19 + Math.floor(hora / 24)), time,
+        temperature_2m: 22, precipitation_probability: 0, wind_speed_10m: 0, wind_gusts_10m: 0, uv_index: 0,
+        weather_code: 0, is_day: hora % 24 >= 6 && hora % 24 < 19 ? 1 : 0, ...extra };
+    };
+    const amostras = [amostra(1), amostra(2), amostra(8, { uv_index: 2 }), amostra(9, { precipitation_probability: 8 }),
+      amostra(20), amostra(21)];
+    const janelas = (dados, atividade, time, duration = 1) =>
+      rankPlannerWindows(dados, 0, atividade, validPlannerPreferences(atividade, { time, duration }));
+    return [
+      Object.keys(plannerActivities).every((atividade) =>
+        janelas(amostras, atividade, "qualquer")[0].first.time === "08:00" &&
+        janelas(amostras, atividade, undefined).every((janela) => janela.first.time === "08:00")),
+      janelas(amostras, "caminhada", "madrugada")[0].first.time === "01:00",
+      janelas(amostras, "caminhada", "noite")[0].first.time === "20:00",
+      !janelas([amostra(8), amostra(9, { is_day: 0 }), amostra(10)], "caminhada", "diurno", 2).length,
+      janelas([amostra(18, { is_day: undefined }), amostra(19)], "caminhada", "diurno").length === 1,
+      !janelas([amostra(17), amostra(18), amostra(19)], "caminhada", "tarde", 2).length,
+      janelas([amostra(12), amostra(13), amostra(16), amostra(17)], "corrida", "diurno")[0].first.time === "16:00",
+      janelas([amostra(8, { uv_index: 1 }), amostra(9), amostra(56), amostra(57)], "caminhada", "diurno")[0].first.timestamp === 28800,
+    ];
+  })()`);
+  exigir(ranking.every(Boolean), "Priorize horários diurnos, mantenha escolhas explícitas e exija que a janela inteira caiba na faixa.");
   mudar(campo("duration"), "2");
   aplicar();
   exigir(links().length === 3 && texto(".planner-location").includes("Porto Alegre"),
@@ -114,6 +140,8 @@ async function testarPlanejador() {
     links().some((link) => inicio(link) === "2026-11-19T11:00:00.000Z") &&
     texto(".planner-results").includes("Dados parciais para rajadas, UV") &&
     texto(".planner-results").includes("08:00 a 10:00"), "Ordene horários locais e identifique os dados opcionais ausentes.");
+  exigir(texto(".planner-results h3").includes("sábado") && texto(".planner-period") === "Horário diurno",
+    "Mostre o dia da semana e a faixa escolhida no resultado.");
   clicar(campo("activity") + '[value="ciclismo"]');
   mudar(campo("duration"), "2");
   aplicar();
@@ -169,7 +197,15 @@ async function testarPlanejador() {
   await abrir("#planejador");
   exigir(buscar(campo("minimum")).value === "12" && buscar(campo("maximum")).value === "28" &&
     buscar(campo("rain")).value === "25" && buscar(campo("duration")).value === "1" &&
-    buscar(campo("period")).value === "qualquer", "Valide preferências previamente salvas antes de usá-las.");
+    buscar(campo("period")).value === "diurno", "Valide preferências previamente salvas antes de usá-las.");
+  localStorage.setItem("atmos-planejador", JSON.stringify({ activity: "caminhada", options: {
+    caminhada: { time: "qualquer", duration: 3 }, corrida: { time: "noite" },
+  } }));
+  await abrir("#planejador");
+  exigir(buscar(campo("period")).value === "qualquer" && buscar(campo("duration")).value === "3",
+    "Preserve a preferência antiga de qualquer horário e a duração salva.");
+  clicar(campo("activity") + '[value="corrida"]');
+  exigir(buscar(campo("period")).value === "noite", "Preserve o período explícito salvo para outra atividade.");
   resultado.textContent += " Planejador com janelas locais, preferências validadas e ligação à linha do tempo.";
 }
 
@@ -439,6 +475,13 @@ async function testarInsights() {
   "Use a linha diária de hoje em Manaus, apesar de a data UTC já ter mudado.");
   exigir(titulos().join("|") === "Chance de chuva|Exposição ao sol|Vento forte|Aquecimento previsto",
     "Priorize uma sugestão por condição sem recomendar atividades no período chuvoso.");
+  const maisSugestoes = buscar(".insights-more");
+  exigir(buscar(".insights-preview").children.length === 1 && !maisSugestoes.hidden && !maisSugestoes.open,
+    "Mostre a sugestão prioritária e recolha as demais.");
+  const alturaRecolhida = maisSugestoes.getBoundingClientRect().height;
+  clicar(".insights-more summary");
+  exigir(maisSugestoes.open && maisSugestoes.getBoundingClientRect().height > alturaRecolhida &&
+    texto(".insights-more summary") === "Mais 3 sugestões", "Mantenha as demais sugestões acessíveis ao expandir.");
   const chuva = destaques()[0];
   exigir(chuva.textContent.includes("85%") && chuva.textContent.includes("guarda-chuva") &&
     chuva.querySelector(".insights-time").textContent === dataLocal(18) + " às 23:00 a " + dataLocal(19) + " às 00:00",
@@ -456,7 +499,7 @@ async function testarInsights() {
     janela().consultas.length === consultas, "Abra o pico de chuva na linha do tempo, sem consultar a API.");
   await consultar("Fortaleza");
   exigir(texto(".insights-summary").includes("0%") && titulos().join() === "Período favorável ao ar livre" &&
-    texto(".insights-time") === dataLocal(19) + " às 06:00 a 18:00" && buscar(".insights-method").open,
+    texto(".insights-time") === dataLocal(19) + " às 06:00 a 18:00" && buscar(".insights-method").open && maisSugestoes.hidden,
   "Atualize os horários e mostre apenas a sugestão favorável na cidade com tempo aberto.");
   quadro.style.width = "320px";
   await esperar(() => janela().innerWidth === 320, "Redimensione as sugestões para celular.");
@@ -631,20 +674,29 @@ async function testarNavegacao() {
   clicar(".favorite-toggle");
   janela().eval('loadLeaflet.pending = Promise.resolve(undefined)');
   const paginas = ["painel", "graficos", "favoritos", "comparar", "mapas", "qualidade-do-ar", "calendario", "planejador", "configuracoes"];
+  await navegar("configuracoes");
+  mudar("#theme-preference", "dark");
   for (const largura of [1280, 320]) {
     quadro.style.width = largura + "px";
     await esperar(() => janela().innerWidth === largura, "Atualize a largura testada.");
+    if (largura === 320) clicar(".theme-button");
     for (const pagina of paginas) {
       await navegar(pagina);
       const visiveis = quadro.contentDocument.querySelectorAll("[data-page]:not([hidden])");
       exigir(visiveis.length === 1 && visiveis[0].id === pagina, "Mostre apenas a página ativa.");
       exigir(buscar('nav a[aria-current="page"]').hash === "#" + pagina, "Destaque a página ativa.");
-      for (const seletor of [".topbar .search", ".location-button", ".refresh-button", ".theme-button"]) {
+      for (const seletor of [".topbar .search", ".location-button", ".refresh-button", ".advisory-button", ".theme-button"]) {
         exigir(buscar(seletor).getClientRects().length > 0, "Mantenha os controles globais na página " + pagina + ".");
       }
       verificarLargura(largura);
     }
     await navegar("painel");
+    const icone = buscar(".weather-art .icon").getBoundingClientRect();
+    const favorito = buscar(".favorite-toggle").getBoundingClientRect();
+    exigir(icone.right <= favorito.left || icone.top >= favorito.bottom,
+      "Separe o botão de favorito do ícone de condição atual.");
+    exigir(buscar(".hourly").getBoundingClientRect().top < buscar(".daily-metrics").getBoundingClientRect().top,
+      "Apresente a faixa horária antes dos detalhes diários.");
     janela().scrollTo(0, 480);
     await esperar(() => janela().scrollY > 100, "Role o documento para testar a barra lateral.");
     const barra = buscar(".sidebar").getBoundingClientRect();

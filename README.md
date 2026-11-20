@@ -57,7 +57,7 @@ Vento e rajadas compõem um único aviso por período. A chuva em milímetros co
 
 ## Planejador
 
-O **Planejador** usa até 72 horas da previsão horária já carregada. Ele oferece até três períodos sem sobreposição, com duração de uma a quatro horas consecutivas. As preferências de temperatura em Celsius, chance máxima de chuva e faixa do dia são salvas por atividade. As faixas locais são madrugada (0h–6h), manhã (6h–12h), tarde (12h–18h) e noite (18h–0h).
+O **Planejador** usa até 72 horas da previsão horária já carregada. Ele oferece até três períodos sem sobreposição, com duração de uma a quatro horas consecutivas. O padrão para novas preferências é **Horário diurno** (06h–19h), considerando a indicação de luz do dia da previsão quando disponível. As outras opções são madrugada (0h–6h), manhã (6h–12h), tarde (12h–18h), noite (18h–0h) e **Qualquer horário**. A janela inteira precisa caber na faixa escolhida, no fuso da cidade. As preferências salvas por atividade são preservadas, inclusive **Qualquer horário**, que era o padrão anterior.
 
 | Atividade | Temperatura padrão | Chance máx. de chuva | Vento máx. | Rajada máx. | UV máx. |
 | --- | --- | ---: | ---: | ---: | ---: |
@@ -67,7 +67,9 @@ O **Planejador** usa até 72 horas da previsão horária já carregada. Ele ofer
 | Passeio ao ar livre | 17–30 °C | 30% | 25 km/h | 40 km/h | 4 |
 | Lavar o carro | 12–30 °C | 10% | 25 km/h | 35 km/h | 5 |
 
-Cada hora precisa ter temperatura no início e chance de chuva no horário de término. O planejador também exclui períodos com chuva horária de pelo menos 10 mm, temperatura de pelo menos 35 °C ou condição prevista fora das categorias de céu limpo a encoberto. Cada critério contribui igualmente para a nota de 0 a 100. Temperaturas próximas ao centro da faixa e valores menores de chance de chuva, vento, rajadas e UV recebem notas maiores. Uma leitura opcional ausente vale zero naquele critério e é indicada no resultado. Empates favorecem o período mais próximo. A nota estima a adequação às preferências com os dados da previsão.
+Cada hora precisa ter temperatura no início e chance de chuva no horário de término. O planejador também exclui períodos com chuva horária de pelo menos 10 mm, temperatura de pelo menos 35 °C ou condição prevista fora das categorias de céu limpo a encoberto. A nota meteorológica de 0 a 100 combina temperatura, chuva, vento, rajadas, UV e condição do céu. Temperaturas próximas ao centro da faixa e valores menores de chance de chuva, vento, rajadas e UV recebem notas maiores. Leituras opcionais ausentes reduzem a nota e são indicadas no resultado.
+
+A classificação combina 75% da nota meteorológica e 25% da adequação do horário, com um desconto de cinco pontos a cada 24 horas de espera. Em **Qualquer horário**, as janelas inteiramente diurnas ficam à frente das alternativas. Para corrida, o início da manhã (06h–10h) e o fim da tarde (16h–19h) recebem preferência dentro da faixa escolhida. As demais atividades usam os limites específicos da tabela para equilibrar conforto, vento, rajadas, UV e chuva.
 
 O atalho de uma recomendação seleciona o horário inicial na linha do tempo. Quando estiver fora das próximas 24 horas, a linha do tempo exibe a data recomendada e oferece um botão para retornar às próximas 24 horas.
 
