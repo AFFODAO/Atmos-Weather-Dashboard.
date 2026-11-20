@@ -41,3 +41,15 @@ A comparação usa a versão original de Jonah Lawrence (DenverCoder1) preservad
 - **Por quê.** Alternar repetidamente entre buscas obrigava o usuário a memorizar valores e dificultava perceber diferenças de fuso.
 - **Benefício.** É possível comparar condições de dois destinos e interpretar os valores com a indicação da data e do horário de cada cidade.
 - **Arquivos.** [Comparação](compare.js) · [Gráficos](charts.js) · [Interface](index.html) · [Estilos](style.css)
+
+## Cinco etapas de integração
+
+| Recurso | Finalidade e benefício | Implementação e limites |
+| --- | --- | --- |
+| Cartões compactos | Facilitar a leitura das métricas de hoje e da qualidade do ar sem ocupar espaço com explicações longas. | Os controles **Saiba mais** e **Ocultar detalhes** expandem cada cartão de forma independente. Leituras, unidades e classificações ficam visíveis. A grade se adapta à largura, e as animações respeitam movimento reduzido. Campos ausentes aparecem como **Indisponível**. |
+| Linha do tempo | Comparar rapidamente as próximas horas e consultar as condições de uma hora específica. | A seleção usa timestamps da Open-Meteo e atualiza o detalhe e o gráfico existente. A faixa aceita toque, clique e teclado. O rótulo usa o fuso da cidade e diferencia horários repetidos. A faixa padrão cobre até 24 horas e depende das amostras disponíveis. |
+| ATMOS Insights | Transformar a previsão em sugestões práticas, como levar guarda-chuva ou procurar um horário mais favorável para um passeio. | Regras determinísticas analisam chuva, UV, vento, variação térmica e condições favoráveis. O botão **Ver horário** abre a amostra de referência. Períodos favoráveis respeitam rajadas e chuva intensa conhecidas. A cobertura disponível limita as sugestões. |
+| Central de avisos | Reunir as condições previstas que merecem atenção em um único lugar. | O sino conta períodos de vento ou rajadas, chuva intensa, calor, UV alto e trovoadas. Os cartões agrupam horas consecutivas e mostram data local, motivo, nível, fonte e hora da consulta. Os critérios são do ATMOS e a Defesa Civil é a referência para alertas oficiais. |
+| Planejador | Comparar horários para cinco atividades de acordo com as preferências do usuário. | Avalia até 72 horas, classifica até três janelas sem sobreposição e usa a mesma previsão da linha do tempo. As preferências são validadas e salvas no navegador. Temperatura e chance de chuva são obrigatórias, e dados opcionais ausentes reduzem a pontuação. |
+
+Os limites e as instruções de uso estão reunidos no [README](README.md). As funcionalidades aproveitam a previsão já carregada quando a cidade continua a mesma.

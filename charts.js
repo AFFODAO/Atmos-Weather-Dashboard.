@@ -4,6 +4,7 @@ const chartDescriptions = {
   precipitation_probability: "Chance de mais de 0,1 mm de precipitação na hora que termina no horário indicado.",
   relative_humidity_2m: "Vapor de água previsto em relação ao limite de saturação, na temperatura do horário indicado.",
   cloud_cover: "Parcela estimada do céu coberta por nuvens.",
+  uv_index: "Intensidade da radiação ultravioleta solar prevista para o horário indicado.",
   us_aqi: "Estimativas recentes na escala de qualidade do ar dos Estados Unidos, em pontos.",
   european_aqi: "Estimativas recentes na escala europeia de qualidade do ar, em pontos.",
   pm2_5: "Concentração estimada de partículas de até 2,5 µm de diâmetro aerodinâmico.",
@@ -50,7 +51,7 @@ class ForecastChart {
 
   get baseUnit() {
     const customUnit = this.metric.selectedOptions[0]?.dataset.unit;
-    if (customUnit) return customUnit;
+    if (customUnit !== undefined) return customUnit;
     if (this.metric.value === "temperature_2m") return "°C";
     if (this.metric.value === "wind_speed_10m") return "km/h";
     return "%";
@@ -62,7 +63,7 @@ class ForecastChart {
 
   refresh() {
     const metric = this.metric.value;
-    this.title.textContent = this.metric.selectedOptions[0].textContent + " (" + this.unit + ")";
+    this.title.textContent = this.metric.selectedOptions[0].textContent + (this.unit ? " (" + this.unit + ")" : "");
     this.description.textContent = chartDescriptions[metric] +
       " Passe o cursor, toque no gráfico ou use o controle de horário para consultar cada leitura.";
     this.values = this.series.length
@@ -81,12 +82,13 @@ class ForecastChart {
   }
 
   select(index) {
-    if (!this.samples[index] || this.content.hidden) return;
+    if (!this.samples[index]) return;
     this.index = index;
+    if (this.content.hidden) return;
     this.range.value = index;
     const { label } = this.samples[index];
     const metric = this.metric.selectedOptions[0].textContent;
-    const unit = this.unit === "%" ? "%" : " " + this.unit;
+    const unit = !this.unit || this.unit === "%" ? this.unit : " " + this.unit;
     const values = this.series.length
       ? this.series.map((name, position) => {
         const time = this.samples[index].cities[position]?.localTime;
@@ -97,6 +99,10 @@ class ForecastChart {
     this.reading.textContent = reading;
     this.range.setAttribute("aria-valuetext", reading);
     this.scheduleDraw();
+  }
+
+  selectTimestamp(timestamp) {
+    this.select(this.samples.findIndex((sample) => sample.timestamp === timestamp));
   }
 
   selectAt(event) {

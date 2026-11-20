@@ -20,8 +20,16 @@ O projeto mantém a licença MIT e o aviso original **Copyright (c) 2020 DenverC
 - Busca com sugestões, geolocalização mediante permissão, favoritos e buscas recentes.
 - Comparação de duas cidades com gráficos por horário local, mapa interativo e estimativas de qualidade do ar.
 - Temas claro e escuro, escolha da cidade padrão e unidades de temperatura e vento.
+- Central de avisos da previsão com contagem no cabeçalho e detalhes por período.
+- Planejador de atividades com preferências salvas e acesso ao horário recomendado na linha do tempo.
 
-[Detalhes das cinco melhorias](MELHORIAS.md) · [Roteiro da apresentação](ROTEIRO.md)
+[Histórico das melhorias](MELHORIAS.md) · [Roteiro da apresentação](ROTEIRO.md)
+
+## Cartões, linha do tempo e ATMOS Insights
+
+- **Cartões de métricas.** No Painel, **Saiba mais** abre a explicação do cartão selecionado, mantendo leituras, unidades e classificações visíveis. O botão muda para **Ocultar detalhes**. O estado acompanha o cartão durante a atualização da previsão, e os efeitos seguem a preferência de movimento reduzido. As leituras dependem dos campos retornados pela Open-Meteo.
+- **Linha do tempo.** Selecione uma hora por clique, toque ou teclado para consultar temperatura, condição do céu, umidade, vento, chance de chuva, UV e nebulosidade. **Ver gráficos por hora** leva o horário selecionado ao gráfico existente. A faixa distingue horários repetidos no fim do horário de verão e mostra somente amostras disponíveis.
+- **ATMOS Insights.** O resumo usa a previsão diária e as sugestões usam até 24 horas de amostras do mesmo carregamento. **Ver horário** abre a amostra que motivou a sugestão. Abra **Como as sugestões são calculadas** para conferir os limites. A análise aponta chuva a partir de 60%, UV moderado a partir de 3, vento a partir de 40 km/h e variação de temperatura de pelo menos 6 °C em uma sequência sem lacunas. As sugestões ao ar livre exigem pelo menos duas horas consecutivas de luz do dia, céu limpo a encoberto, chance de chuva de até 25%, UV baixo, vento abaixo de 25 km/h e temperatura de 16 a 30 °C. Rajadas e chuva intensa conhecidas também podem excluir horários pelos critérios da central. As sugestões dependem da cobertura da previsão.
 
 ## Dados do painel
 
@@ -31,6 +39,37 @@ O projeto mantém a licença MIT e o aviso original **Copyright (c) 2020 DenverC
 - O painel usa o fuso da cidade para exibir leituras horárias. A previsão diária segue a data de referência da API, que usa um deslocamento fixo por resposta. Nas mudanças de horário de verão, as duas ocorrências de um horário repetido exibem seus respectivos deslocamentos.
 - A chance de precipitação de uma hora se refere a mais de 0,1 mm na hora que termina no horário indicado. O total acumulado do cartão de condições atuais é dado em milímetros e se refere ao intervalo anterior à leitura. O máximo diário mostra a maior chance horária prevista para o dia. [Documentação da Open-Meteo](https://open-meteo.com/en/docs)
 - O índice UV é arredondado ao inteiro mais próximo para exibir a faixa correspondente. O painel apresenta orientações de proteção a partir de 3 e orientações reforçadas a partir de 8. A duração da luz do dia é calculada quando os instantes de nascer e pôr do sol estão disponíveis. [Orientações da Organização Mundial da Saúde](https://www.who.int/news-room/questions-and-answers/item/radiation-the-ultraviolet-(uv)-index)
+
+## Avisos baseados na previsão
+
+O sino no cabeçalho mostra quantos avisos o ATMOS identificou na previsão horária da cidade. A central reúne períodos consecutivos da mesma condição, indica o maior nível do período e mostra a fonte e o horário local da última consulta bem-sucedida. Os níveis são critérios do ATMOS. Para alertas oficiais, consulte a Defesa Civil.
+
+| Condição | Atenção | Elevado |
+| --- | --- | --- |
+| Vento previsto a 10 m | ≥ 40 km/h | ≥ 60 km/h |
+| Rajadas previstas a 10 m | ≥ 55 km/h | ≥ 75 km/h |
+| Chuva acumulada em uma hora | ≥ 10 mm | ≥ 25 mm |
+| Índice UV arredondado | ≥ 6 | ≥ 8 |
+| Temperatura do ar | ≥ 35 °C | ≥ 40 °C |
+| Trovoadas | Código 95 | Códigos 96 e 99, com granizo |
+
+Vento e rajadas compõem um único aviso por período. A chuva em milímetros corresponde à hora que termina no horário indicado. A central considera os acumulados cujo horário de término ainda está à frente e ignora campos ausentes. Os limites são centralizados em [advisories.js](advisories.js). [Documentação da Open-Meteo](https://open-meteo.com/en/docs)
+
+## Planejador
+
+O **Planejador** usa até 72 horas da previsão horária já carregada. Ele oferece até três períodos sem sobreposição, com duração de uma a quatro horas consecutivas. As preferências de temperatura em Celsius, chance máxima de chuva e faixa do dia são salvas por atividade. As faixas locais são madrugada (0h–6h), manhã (6h–12h), tarde (12h–18h) e noite (18h–0h).
+
+| Atividade | Temperatura padrão | Chance máx. de chuva | Vento máx. | Rajada máx. | UV máx. |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Caminhada | 15–29 °C | 35% | 30 km/h | 45 km/h | 5 |
+| Corrida | 10–25 °C | 30% | 25 km/h | 40 km/h | 5 |
+| Ciclismo | 12–28 °C | 25% | 20 km/h | 32 km/h | 5 |
+| Passeio ao ar livre | 17–30 °C | 30% | 25 km/h | 40 km/h | 4 |
+| Lavar o carro | 12–30 °C | 10% | 25 km/h | 35 km/h | 5 |
+
+Cada hora precisa ter temperatura no início e chance de chuva no horário de término. O planejador também exclui períodos com chuva horária de pelo menos 10 mm, temperatura de pelo menos 35 °C ou condição prevista fora das categorias de céu limpo a encoberto. Cada critério contribui igualmente para a nota de 0 a 100. Temperaturas próximas ao centro da faixa e valores menores de chance de chuva, vento, rajadas e UV recebem notas maiores. Uma leitura opcional ausente vale zero naquele critério e é indicada no resultado. Empates favorecem o período mais próximo. A nota estima a adequação às preferências com os dados da previsão.
+
+O atalho de uma recomendação seleciona o horário inicial na linha do tempo. Quando estiver fora das próximas 24 horas, a linha do tempo exibe a data recomendada e oferece um botão para retornar às próximas 24 horas.
 
 ## Como usar
 
@@ -59,7 +98,7 @@ git log --left-right --oneline origin/main...HEAD
 if (git diff --cached --name-only) { throw "Revise os arquivos que já estão preparados para commit." }
 git switch -c entrega-atmos
 if ($LASTEXITCODE -ne 0) { throw "Escolha um nome livre para a branch de entrega." }
-git add -- .nojekyll README.md MELHORIAS.md ROTEIRO.md index.html style.css theme.js script.js weather-data.js cities.js compare.js charts.js environment.js tests/configuracoes.html tests/configuracoes.js tests/revisao.js tests/simulacao.js tests/testar_configuracoes.py
+git add -- .nojekyll README.md MELHORIAS.md ROTEIRO.md index.html style.css theme.js script.js weather-data.js cities.js compare.js charts.js environment.js insights.js advisories.js planner.js tests/configuracoes.html tests/configuracoes.js tests/revisao.js tests/simulacao.js tests/testar_configuracoes.py
 git diff --cached --stat
 git diff --cached --check
 ```
@@ -125,7 +164,7 @@ Confira se `origin` aponta para o repositório **AFFODAO/Atmos-Weather-Dashboard
 
 ## Previsão interativa
 
-- Deslize a faixa de previsão horária para consultar as próximas 24 horas, incluindo a hora atual quando houver dados. Os horários seguem o fuso da cidade.
+- Deslize a faixa de previsão horária e selecione um horário para abrir suas leituras, incluindo a previsão para a hora atual quando houver dados. Os horários seguem o fuso da cidade.
 - Selecione um dia no resumo semanal para abrir seus detalhes no **Calendário**. De lá, use **Ver gráficos do dia** para abrir a página **Gráficos** com o período selecionado. A previsão semanal mostra a maior probabilidade horária de precipitação de cada dia.
 - Escolha uma métrica e passe o cursor, toque no gráfico ou use as setas do teclado no controle de horário para consultar valores. **Próximas 24 h** restaura o período inicial.
 - As interações reutilizam os dados da mesma consulta à Open-Meteo. Horas com valores ausentes aparecem sem pontos nos gráficos.
@@ -134,7 +173,7 @@ Confira se `origin` aponta para o repositório **AFFODAO/Atmos-Weather-Dashboard
 
 - Cada item da barra lateral abre uma página com endereço próprio, como `#graficos`. A busca, as ferramentas globais e a cidade selecionada acompanham a navegação. Use **Voltar** e **Avançar** do navegador para revisitar páginas.
 - A barra lateral permanece visível durante a rolagem. Em telas pequenas, use o botão do menu para abrir a navegação e Escape para fechá-la. Use Tab para percorrer os controles e o primeiro atalho do site para ir ao conteúdo da página atual.
-- Com a faixa horária em foco, use as setas para rolar os cartões. No gráfico, as setas percorrem as leituras quando o controle de horário está em foco.
+- Com um cartão de horário em foco, use as setas para avançar ou voltar na seleção. Início e Fim selecionam o primeiro e o último horário. No gráfico, as setas percorrem as leituras quando o controle de horário está em foco.
 - As animações seguem a preferência de movimento reduzido do sistema. Durante a consulta inicial, o painel mostra a estrutura de carregamento. Nas consultas seguintes, os dados existentes continuam visíveis enquanto a nova resposta está pendente.
 - A interface usa a fonte [Manrope, distribuída pelo Google Fonts](https://fonts.google.com/specimen/Manrope).
 
@@ -143,12 +182,13 @@ Confira se `origin` aponta para o repositório **AFFODAO/Atmos-Weather-Dashboard
 Execute `python tests/testar_configuracoes.py` com Python 3.12 e Google Chrome. Use a variável `ATMOS_CHROME` se o executável estiver em outro caminho.
 
 - A suíte com dados simulados verifica a busca, cidades homônimas, falhas e respostas incompletas, cancelamento de consultas, unidades, temas, armazenamento, previsões, comparação entre fusos, geolocalização e navegação em larguras de 320, 350 e 1.280 px.
-- O teste de navegação verifica as oito páginas, os controles globais, a barra lateral durante a rolagem, o menu em telas baixas, a persistência da cidade e os botões **Voltar** e **Avançar**.
+- O teste de navegação verifica as nove páginas, os controles globais, a barra lateral durante a rolagem, o menu em telas baixas, a persistência da cidade e os botões **Voltar** e **Avançar**.
 - O teste de contexto verifica as unidades dos gráficos, a leitura acessível por horário, os detalhes expansíveis, as faixas de UV e IQA, os horários solares e o comportamento com dados ausentes.
+- Os testes das cinco etapas cobrem cartões recolhidos e os dois temas, sincronização da linha do tempo com o gráfico, virada do dia e horário de verão, sugestões e avisos sem conflito, limites de intensidade e expiração, além das preferências e janelas de até 72 horas do Planejador.
 - Execute `python tests/testar_configuracoes.py --servicos-reais` para verificar previsão, geocodificação e qualidade do ar da Open-Meteo, além do Leaflet e dos mosaicos do OpenStreetMap. O teste precisa de acesso à internet.
 - A suíte com serviços reais também verifica as interações do Leaflet e a recuperação de 403, 429 e perda de conexão com mosaicos simulados para os testes de arrasto, zoom e falhas.
 - As duas suítes servem o projeto em um subdiretório local para verificar os caminhos relativos usados no GitHub Pages.
-- A verificação de preparação também executou a suíte com serviços reais a partir de uma origem HTTPS local, sob um subdiretório. A confirmação da URL pública deve ser feita após a publicação no Pages.
+- Confira também a URL pública em HTTPS após a publicação no Pages.
 
 ## Lista de conferência da entrega
 

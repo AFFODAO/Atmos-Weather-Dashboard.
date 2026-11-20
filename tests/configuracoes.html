@@ -9,7 +9,12 @@
 <script src="revisao.js"></script>
 <script>
   const teste = location.search === "?servicos-reais"
-    ? testarServicosReais : async () => { await testar(); await testarRevisao(); await testarNavegacao(); await testarContexto(); };
+    ? testarServicosReais : async () => {
+      await testar(); await testarRevisao(); await testarNavegacao(); await testarContexto(); await testarLinhaDoTempo();
+      await testarInsights();
+      await testarAvisos();
+      await testarPlanejador();
+    };
   teste().then(() => publicar("Aprovado. " + resultado.textContent))
     .catch((erro) => publicar(erro.stack));
 </script>

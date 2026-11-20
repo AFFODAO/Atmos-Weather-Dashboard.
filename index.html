@@ -16,6 +16,9 @@
   <script src="./cities.js" defer></script>
   <script src="./compare.js" defer></script>
   <script src="./environment.js" defer></script>
+  <script src="./insights.js" defer></script>
+  <script src="./advisories.js" defer></script>
+  <script src="./planner.js" defer></script>
   <script src="./script.js" defer></script>
 </head>
 <body>
@@ -35,6 +38,7 @@
         <a class="nav-item" href="#mapas" aria-label="Mapas" title="Mapas"><span aria-hidden="true">◇</span><span class="nav-label">Mapas</span></a>
         <a class="nav-item" href="#qualidade-do-ar" aria-label="Qualidade do ar" title="Qualidade do ar"><span aria-hidden="true">≋</span><span class="nav-label">Qualidade do ar</span></a>
         <a class="nav-item" href="#calendario" title="Calendário" aria-label="Calendário"><span aria-hidden="true">▣</span><span class="nav-label">Calendário</span></a>
+        <a class="nav-item" href="#planejador" aria-label="Planejador" title="Planejador"><span aria-hidden="true">◷</span><span class="nav-label">Planejador</span></a>
         <a class="nav-item" href="#configuracoes" title="Configurações" aria-label="Configurações"><span aria-hidden="true">⚙</span><span class="nav-label">Configurações</span></a>
       </nav>
     </aside>
@@ -54,12 +58,40 @@
         <div class="toolbar">
           <button class="control location-button" type="button" title="Minha localização"><span aria-hidden="true">◎</span><span>Minha localização</span></button>
           <button class="control refresh-button" type="button" aria-label="Atualizar dados" title="Atualizar dados"><span aria-hidden="true">↻</span></button>
+          <button class="control advisory-button" type="button" aria-label="Avisos baseados na previsão: 0 avisos"
+            title="Avisos baseados na previsão" aria-haspopup="dialog" aria-controls="central-avisos" aria-expanded="false">
+            <span aria-hidden="true">🔔</span><span class="advisory-count" aria-hidden="true">0</span>
+          </button>
           <button class="control theme-button" type="button" aria-label="Tema claro" aria-pressed="false" title="Tema claro"><span aria-hidden="true">☀</span></button>
         </div>
       </header>
 
       <p class="status weather-status" role="status" tabindex="-1"></p>
       <p class="city-feedback sr-only" role="status"></p>
+
+      <dialog class="panel advisory-dialog" id="central-avisos" aria-labelledby="advisory-heading" aria-describedby="advisory-note">
+        <div class="panel-heading">
+          <h2 id="advisory-heading">Avisos baseados na previsão</h2>
+          <form method="dialog"><button class="control advisory-close" autofocus>Fechar</button></form>
+        </div>
+        <p class="advisory-city"></p>
+        <p id="advisory-note">Estimativas para as próximas 24 horas, no fuso da cidade. Os níveis seguem os critérios do ATMOS. Para alertas oficiais, consulte a Defesa Civil.</p>
+        <p class="advisory-source" hidden>Fonte: <a href="https://open-meteo.com/">Open-Meteo</a> · Consulta em <time class="advisory-updated"></time></p>
+        <p class="advisory-empty" role="status">Consulte uma cidade para avaliar as condições previstas.</p>
+        <ul class="advisory-list"></ul>
+        <template>
+          <li>
+            <details>
+              <summary><strong class="advisory-title"></strong><span class="advisory-severity"></span><span class="advisory-time"></span></summary>
+              <p class="advisory-reason"></p>
+            </details>
+          </li>
+        </template>
+        <details class="advisory-method" hidden>
+          <summary>Critérios dos níveis de aviso</summary>
+          <p class="advisory-thresholds"></p>
+        </details>
+      </dialog>
 
       <dialog class="panel history-dialog" aria-labelledby="clear-list-title" aria-describedby="clear-list-description">
         <h2 id="clear-list-title"></h2>
@@ -82,6 +114,70 @@
             <p class="forecast-detail-extra"></p>
             <a href="#graficos">Ver gráficos do dia</a>
           </div>
+        </div>
+      </section>
+
+      <section id="planejador" data-page aria-labelledby="planner-title" tabindex="-1" hidden>
+        <header class="page-heading">
+          <h1 id="planner-title">Planejador</h1>
+          <p class="planner-location"></p>
+        </header>
+        <div class="planner-grid">
+          <form class="panel planner-form">
+            <fieldset class="planner-activities">
+              <legend>Escolha uma atividade</legend>
+              <label><input type="radio" name="activity" value="caminhada"><span aria-hidden="true">🚶</span> Caminhada</label>
+              <label><input type="radio" name="activity" value="corrida"><span aria-hidden="true">🏃</span> Corrida</label>
+              <label><input type="radio" name="activity" value="ciclismo"><span aria-hidden="true">🚲</span> Ciclismo</label>
+              <label><input type="radio" name="activity" value="passeio"><span aria-hidden="true">🌿</span> Passeio ao ar livre</label>
+              <label><input type="radio" name="activity" value="carro"><span aria-hidden="true">🚗</span> Lavar o carro</label>
+            </fieldset>
+            <fieldset class="planner-preferences">
+              <legend>Preferências</legend>
+              <div>
+                <label>Duração
+                  <select class="control" name="duration">
+                    <option value="1">1 hora</option><option value="2">2 horas</option>
+                    <option value="3">3 horas</option><option value="4">4 horas</option>
+                  </select>
+                </label>
+                <label>Período do dia
+                  <select class="control" name="period">
+                    <option value="qualquer">Qualquer horário</option><option value="madrugada">Madrugada</option>
+                    <option value="manhã">Manhã</option><option value="tarde">Tarde</option><option value="noite">Noite</option>
+                  </select>
+                </label>
+                <label>Mínima (°C)<input class="control" type="number" name="minimum" min="-30" max="50" step="1" required></label>
+                <label>Máxima (°C)<input class="control" type="number" name="maximum" min="-30" max="50" step="1" required></label>
+                <label>Chance de chuva máxima (%)<input class="control" type="number" name="rain" min="0" max="100" step="1" required></label>
+              </div>
+            </fieldset>
+            <button class="control planner-apply" type="submit">Aplicar preferências</button>
+            <p class="planner-feedback" role="status"></p>
+          </form>
+          <section class="panel planner-recommendations" aria-labelledby="planner-result-title">
+            <h2 id="planner-result-title">Melhores horários</h2>
+            <p class="metric-context">Previsão das próximas 72 horas, conforme a disponibilidade, no horário local da cidade.</p>
+            <p class="planner-status" role="status" tabindex="-1">Consulte uma cidade para planejar uma atividade.</p>
+            <ol class="planner-results"></ol>
+            <template>
+              <li>
+                <header><span class="planner-icon" aria-hidden="true"></span><div><h3></h3><p class="planner-condition"></p></div>
+                  <span class="planner-score"></span></header>
+                <dl><div><dt>Temperatura</dt><dd class="planner-temperature"></dd></div>
+                  <div><dt>Chance de chuva</dt><dd class="planner-rain"></dd></div></dl>
+                <p class="planner-reason"></p>
+                <p class="planner-confidence"></p>
+                <a href="#painel">Ver na linha do tempo</a>
+              </li>
+            </template>
+            <details class="planner-method">
+              <summary>Como a pontuação é calculada</summary>
+              <p class="planner-limits metric-context"></p>
+              <p class="metric-context">A nota compara temperatura, chance de chuva, vento, rajadas, UV e condições do céu com os critérios da atividade. Leituras ausentes reduzem a nota. A pontuação é uma estimativa de adequação às preferências.</p>
+              <p class="metric-context">Cada hora precisa ter temperatura e chance de chuva disponíveis. O planejador deixa de fora períodos com chuva intensa, calor elevado ou condições previstas além de céu limpo a encoberto.</p>
+            </details>
+          </section>
         </div>
       </section>
 
@@ -255,7 +351,7 @@
           </section>
         </div>
 
-        <section aria-labelledby="daily-title">
+        <section class="daily-metrics" aria-labelledby="daily-title">
           <h2 id="daily-title" class="metrics-title">Previsão para hoje</h2>
           <dl class="metric-grid">
             <div class="panel metric">
@@ -315,13 +411,53 @@
           </dl>
         </section>
 
+        <section class="panel insights" aria-labelledby="insights-title">
+          <h2 id="insights-title">ATMOS Insights</h2>
+          <p class="insights-summary"></p>
+          <p class="insights-note">Sugestões para as próximas 24 horas, com base na previsão local.</p>
+          <p class="insights-empty" hidden></p>
+          <ul class="insights-list"></ul>
+          <template>
+            <li>
+              <span class="insights-icon" aria-hidden="true"></span>
+              <div>
+                <h3></h3>
+                <p class="insights-time"></p>
+                <p class="insights-advice"></p>
+                <button class="insights-hour" type="button" aria-controls="detalhes-horarios">Ver horário</button>
+              </div>
+            </li>
+          </template>
+          <details class="insights-method">
+            <summary>Como as sugestões são calculadas</summary>
+            <p class="insights-criteria metric-context"></p>
+            <p class="metric-context">Os horários são locais e as condições podem mudar.</p>
+          </details>
+        </section>
+
         <section class="panel hourly" aria-labelledby="hourly-title">
           <div class="panel-heading">
             <h2 id="hourly-title">Próximas 24 horas</h2>
-            <a class="hourly-charts-link" href="#graficos">Ver gráficos por hora</a>
+            <div class="hourly-actions">
+              <button class="control timeline-reset" type="button" hidden>Voltar às próximas 24 horas</button>
+              <a class="hourly-charts-link" href="#graficos">Ver gráficos por hora</a>
+            </div>
           </div>
-          <ol class="hourly-list" tabindex="0" aria-label="Previsão horária no fuso da cidade"></ol>
+          <p class="sr-only" id="hourly-keyboard">Use as setas para navegar entre os horários. Início e Fim vão para as extremidades da previsão.</p>
+          <ol class="hourly-list" aria-label="Selecione um horário da previsão" aria-describedby="hourly-keyboard"></ol>
           <p class="hourly-status" hidden></p>
+          <section class="hourly-detail" id="detalhes-horarios" aria-labelledby="hourly-detail-title" hidden>
+            <h3 id="hourly-detail-title" tabindex="-1">Previsão para <time aria-live="polite"></time></h3>
+            <dl>
+              <div><dt>Temperatura</dt><dd data-hourly="temperature_2m"></dd></div>
+              <div><dt>Condições</dt><dd data-hourly="weather_code"></dd></div>
+              <div><dt>Umidade relativa</dt><dd data-hourly="relative_humidity_2m"></dd></div>
+              <div><dt>Vento</dt><dd data-hourly="wind_speed_10m"></dd></div>
+              <div><dt>Chance de precipitação</dt><dd data-hourly="precipitation_probability"></dd></div>
+              <div><dt>Índice UV</dt><dd data-hourly="uv_index"></dd></div>
+              <div><dt>Cobertura de nuvens</dt><dd data-hourly="cloud_cover"></dd></div>
+            </dl>
+          </section>
           <div class="weather-explanation">
             <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-horaria" aria-label="Saiba mais sobre a previsão por hora">Saiba mais</button>
             <div id="explicacao-horaria" class="explanation-panel" inert>
@@ -367,6 +503,7 @@
                 <option value="precipitation_probability">Chance de precipitação</option>
                 <option value="relative_humidity_2m">Umidade relativa</option>
                 <option value="cloud_cover">Cobertura de nuvens</option>
+                <option value="uv_index" data-unit="">Índice UV</option>
               </select>
             </div>
           </div>

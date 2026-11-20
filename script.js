@@ -16,11 +16,24 @@ const calendarStatus = calendarPanel.querySelector(".calendar-status");
 const settingsPanel = document.querySelector("#configuracoes");
 const hourlyList = document.querySelector(".hourly-list");
 const hourlyStatus = document.querySelector(".hourly-status");
+const hourlyDetail = document.querySelector(".hourly-detail");
+const hourlyDetailTime = hourlyDetail.querySelector("time");
+const hourlyDetailReadings = hourlyDetail.querySelectorAll("[data-hourly]");
+const hourlyTitle = document.querySelector("#hourly-title");
+const timelineReset = document.querySelector(".timeline-reset");
+const planner = new ActivityPlanner(document.querySelector("#planejador"));
+const insightsPanel = document.querySelector(".insights");
+const hourlyUnits = {
+  temperature_2m: " °C", relative_humidity_2m: "%", wind_speed_10m: " km/h",
+  precipitation_probability: "%", uv_index: "", cloud_cover: "%",
+};
 const chartCard = document.querySelector(".forecast-charts");
 const chartsUnavailable = document.querySelector(".charts-unavailable");
 const chart = new ForecastChart(chartCard, formatReading);
 const chartReset = document.querySelector(".chart-reset");
 const refreshButton = document.querySelector(".refresh-button");
+const advisoryButton = document.querySelector(".advisory-button");
+const advisoryDialog = document.querySelector(".advisory-dialog");
 const localClock = document.querySelector(".current-date");
 const weekdayFormat = new Intl.DateTimeFormat("pt-BR", { weekday: "long", timeZone: "UTC" });
 const shortDateFormat = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", timeZone: "UTC" });
@@ -32,16 +45,32 @@ let localHourFormat;
 let displayedForecast;
 let displayedHour;
 let selectedDay;
+let selectedHour;
+let timelineDay;
+let pendingPlannerHour;
 let focusCalendarDay = false;
 let displayedWeather;
 const locationCache = new Map();
 const pendingLocations = new Map();
+
+advisoryButton.addEventListener("click", () => {
+  advisoryDialog.showModal();
+  advisoryButton.setAttribute("aria-expanded", "true");
+});
+advisoryDialog.addEventListener("close", () => {
+  advisoryButton.setAttribute("aria-expanded", "false");
+  advisoryButton.focus();
+});
 
 document.addEventListener("click", (event) => {
   const button = event.target.closest(".explanation-toggle");
   if (!button) return;
   const expanded = button.getAttribute("aria-expanded") === "false";
   const panel = document.getElementById(button.getAttribute("aria-controls"));
+  const previousLabel = button.textContent;
+  const label = expanded ? "Ocultar detalhes" : "Saiba mais";
+  button.textContent = label;
+  button.setAttribute("aria-label", label + button.getAttribute("aria-label").slice(previousLabel.length));
   button.setAttribute("aria-expanded", String(expanded));
   panel.inert = !expanded;
 });
@@ -282,6 +311,8 @@ function makeHourlySamples(hourly) {
       timestamp, day, time, offset, localKey,
       temperature_2m: hourly.temperature_2m?.[index],
       wind_speed_10m: hourly.wind_speed_10m?.[index],
+      wind_gusts_10m: hourly.wind_gusts_10m?.[index],
+      precipitation: hourly.precipitation?.[index],
       precipitation_probability: hourly.precipitation_probability?.[index],
       relative_humidity_2m: hourly.relative_humidity_2m?.[index],
       cloud_cover: hourly.cloud_cover?.[index],
@@ -298,47 +329,168 @@ function makeHourlySamples(hourly) {
 }
 
 function displayHourly(samples, currentHour) {
+  const hadFocus = hourlyList.contains(document.activeElement);
   const rows = samples.map((sample, index) => {
     const row = document.createElement("li");
-    row.innerHTML = '<time></time><span class="hourly-icon" role="img"></span>' +
-      '<strong></strong><span class="hourly-rain"></span>';
-    if (sample.timestamp === currentHour) row.setAttribute("aria-current", "time");
+    row.innerHTML = '<button class="hourly-choice" type="button" aria-controls="detalhes-horarios">' +
+      '<span class="hourly-date" aria-hidden="true"></span><time></time><span class="hourly-icon" aria-hidden="true"></span>' +
+      '<strong></strong><span class="hourly-rain"></span></button>';
+    const button = row.firstElementChild;
+    button.dataset.timestamp = sample.timestamp;
+    if (sample.timestamp === currentHour) button.setAttribute("aria-current", "time");
     const time = row.querySelector("time");
     time.dateTime = new Date(sample.timestamp * 1000).toISOString();
-    time.textContent = sample.timestamp === currentHour ? "Agora · " + sample.displayTime : sample.displayTime;
-    if (index > 0 && samples[index - 1].day !== sample.day) time.textContent = sample.label;
-    time.setAttribute("aria-label", sample.timestamp === currentHour ? "Agora, " + sample.label : sample.label);
+    time.textContent = sample.displayTime;
+    if (sample.timestamp === currentHour) {
+      row.querySelector(".hourly-date").textContent = "Hora atual";
+    } else if (index === 0 || samples[index - 1].day !== sample.day) {
+      row.querySelector(".hourly-date").textContent = shortDateFormat.format(new Date(sample.day + "T00:00:00Z"));
+    }
     const [description, icon] = describeWeather(sample.weather_code, sample.is_day !== 0);
-    const graphic = row.querySelector(".hourly-icon");
-    graphic.setAttribute("aria-label", description);
-    graphic.title = description;
-    graphic.textContent = icon;
-    row.querySelector("strong").textContent = formatReading(sample.temperature_2m, " °C");
-    const rain = formatReading(sample.precipitation_probability, "%");
-    row.querySelector(".hourly-rain").textContent = "Chance: " + rain;
+    const temperature = formatReading(sample.temperature_2m, " °C");
+    const rain = "Chance: " + formatReading(sample.precipitation_probability, "%");
+    button.setAttribute("aria-label", "Previsão para " + sample.label + " · " + description +
+      " · Temperatura: " + temperature + " · " + rain);
+    row.querySelector(".hourly-icon").textContent = icon;
+    row.querySelector("strong").textContent = temperature;
+    row.querySelector(".hourly-rain").textContent = rain;
     return row;
   });
-  const scroll = hourlyList.scrollLeft;
+  const preserved = samples.find(({ timestamp }) => timestamp === selectedHour);
+  const scroll = preserved ? hourlyList.scrollLeft : 0;
   hourlyList.replaceChildren(...rows);
   hourlyList.scrollLeft = scroll;
+  const selected = selectHourlySample(preserved ?? samples[0]);
+  if (hadFocus) (selected ?? document.querySelector(".hourly-charts-link")).focus({ preventScroll: true });
   hourlyList.hidden = rows.length === 0;
-  hourlyStatus.hidden = rows.length === 24;
-  hourlyStatus.textContent = rows.length
+  hourlyStatus.hidden = timelineDay ? rows.length > 0 : rows.length === 24;
+  hourlyStatus.textContent = rows.length && !timelineDay
     ? "Previsão disponível para " + rows.length + " das próximas 24 horas."
     : "Previsão horária indisponível.";
 }
 
+function displayTimeline() {
+  const { samples, upcoming, currentHour } = displayedForecast;
+  const dated = timelineDay && samples.filter((sample) => sample.day === timelineDay);
+  if (dated && !dated.length) timelineDay = undefined;
+  displayedForecast.timeline = timelineDay ? dated : upcoming;
+  hourlyTitle.textContent = timelineDay ? "Previsão por hora · " +
+    shortDateFormat.format(new Date(timelineDay + "T00:00:00Z")) : "Próximas 24 horas";
+  timelineReset.hidden = !timelineDay;
+  displayHourly(displayedForecast.timeline, currentHour);
+}
+
+function resetTimeline() {
+  timelineDay = undefined;
+  displayTimeline();
+  selectForecastDay(undefined);
+}
+
+timelineReset.addEventListener("click", () => {
+  resetTimeline();
+  (hourlyList.querySelector('[aria-pressed="true"]') ?? document.querySelector(".hourly-charts-link")).focus();
+});
+
+function selectHourlySample(sample) {
+  selectedHour = sample?.timestamp;
+  let selected;
+  for (const button of hourlyList.querySelectorAll(".hourly-choice")) {
+    const active = Number(button.dataset.timestamp) === selectedHour;
+    button.tabIndex = active ? 0 : -1;
+    button.setAttribute("aria-pressed", String(active));
+    if (active) selected = button;
+  }
+  hourlyDetail.hidden = !sample;
+  if (!sample) return undefined;
+  hourlyDetailTime.dateTime = new Date(sample.timestamp * 1000).toISOString();
+  if (hourlyDetailTime.textContent !== sample.label) hourlyDetailTime.textContent = sample.label;
+  for (const reading of hourlyDetailReadings) {
+    const key = reading.dataset.hourly;
+    reading.textContent = key === "weather_code"
+      ? describeWeather(sample.weather_code, sample.is_day !== 0)[0]
+      : formatReading(sample[key], hourlyUnits[key]);
+  }
+  return selected;
+}
+
+function activateHour(button, focusDetails = false) {
+  const sample = displayedForecast.timeline.find(({ timestamp }) => timestamp === Number(button.dataset.timestamp));
+  if (!sample) return;
+  selectHourlySample(sample);
+  if (selectedDay) selectForecastDay(undefined);
+  else chart.selectTimestamp(selectedHour);
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (focusDetails) {
+    hourlyDetail.querySelector("h3").focus();
+    const card = button.getBoundingClientRect();
+    const list = hourlyList.getBoundingClientRect();
+    hourlyList.scrollBy({ left: card.left - list.left - (list.width - card.width) / 2,
+      behavior: reducedMotion ? "instant" : "smooth" });
+  } else {
+    button.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reducedMotion ? "instant" : "smooth" });
+  }
+}
+
+insightsPanel.addEventListener("click", (event) => {
+  const recommendation = event.target.closest(".insights-hour");
+  if (!recommendation) return;
+  if (timelineDay) resetTimeline();
+  const hour = hourlyList.querySelector('[data-timestamp="' + recommendation.dataset.timestamp + '"]');
+  if (hour) activateHour(hour, true);
+});
+
+planner.list.addEventListener("click", (event) => {
+  const link = event.target.closest("a[data-timestamp]");
+  if (link && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+    pendingPlannerHour = Number(link.dataset.timestamp);
+  }
+});
+
+function openPlannerHour(timestamp) {
+  const sample = displayedForecast?.samples.find((entry) => entry.timestamp === timestamp);
+  if (!sample) return;
+  timelineDay = displayedForecast.upcoming.includes(sample) ? undefined : sample.day;
+  selectedHour = timestamp;
+  displayTimeline();
+  selectForecastDay(undefined);
+  const button = hourlyList.querySelector('[aria-pressed="true"]');
+  if (button) activateHour(button, true);
+}
+
+hourlyList.addEventListener("click", (event) => {
+  const button = event.target.closest(".hourly-choice");
+  if (button) activateHour(button);
+});
+
+hourlyList.addEventListener("keydown", (event) => {
+  const button = event.target.closest(".hourly-choice");
+  if (!button || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  const row = button.parentElement;
+  const destination = {
+    ArrowLeft: row.previousElementSibling, ArrowRight: row.nextElementSibling,
+    Home: hourlyList.firstElementChild, End: hourlyList.lastElementChild,
+  }[event.key]?.firstElementChild;
+  event.preventDefault();
+  if (!destination) return;
+  destination.focus({ preventScroll: true });
+  activateHour(destination);
+});
+
 function selectForecastDay(day, updateChart = true) {
   selectedDay = day;
-  const { daily, samples, upcoming } = displayedForecast;
+  const { daily, samples, timeline } = displayedForecast;
   const index = day ? daily.time.indexOf(day) : -1;
   for (const button of document.querySelectorAll(".forecast-choice")) {
     button.setAttribute("aria-pressed", String(button.dataset.day === day));
   }
   calendarDetail.hidden = index < 0 || Boolean(displayedForecast.today && day < displayedForecast.today);
-  chartReset.disabled = index < 0;
+  chartReset.disabled = index < 0 && !timelineDay;
   if (index < 0) {
-    if (updateChart) chart.setSamples(upcoming, "Previsão do modelo · próximas 24 horas · horário local");
+    if (updateChart) {
+      chart.setSamples(timeline, "Previsão do modelo · " +
+        (timelineDay ? shortDateFormat.format(new Date(timelineDay + "T00:00:00Z")) : "próximas 24 horas") + " · horário local");
+      chart.selectTimestamp(selectedHour);
+    }
     return;
   }
   const date = new Date(day + "T00:00:00Z");
@@ -363,7 +515,8 @@ function selectForecastDay(day, updateChart = true) {
 }
 
 chartReset.addEventListener("click", () => {
-  selectForecastDay(undefined);
+  if (timelineDay) resetTimeline();
+  else selectForecastDay(undefined);
   (chart.content.hidden ? chart.metric : chart.range).focus();
 });
 document.querySelector(".hourly-charts-link").addEventListener("click", (event) => {
@@ -372,6 +525,14 @@ document.querySelector(".hourly-charts-link").addEventListener("click", (event) 
 
 function displayWeather(location, { current, daily, hourly, timezone, utc_offset_seconds }) {
   configureClock(timezone);
+  const previousLocation = displayedWeather?.location;
+  const sameLocation = location === previousLocation || (isCity(location) && location.id === previousLocation?.id);
+  if (!sameLocation) {
+    selectedHour = undefined;
+    timelineDay = undefined;
+    hourlyList.scrollLeft = 0;
+    advisoryDialog.querySelector(".advisory-list").replaceChildren();
+  }
   displayedWeather = { location, current };
   displayCurrentWeather(location, current);
   const place = [location.name, cityRegion(location)].filter(Boolean).join(" · ");
@@ -379,10 +540,9 @@ function displayWeather(location, { current, daily, hourly, timezone, utc_offset
   document.querySelector(".charts-location").textContent = place;
 
   const days = daily.time.map((timestamp) => dailyDate(timestamp, utc_offset_seconds, (time) => getLocalParts(time).day));
-  const sameLocation = location === selectedLocation || (isCity(location) && location.id === selectedLocation?.id);
   if (!sameLocation || !days.includes(selectedDay)) selectedDay = undefined;
-  displayedForecast = { daily: { ...daily, time: days }, samples: makeHourlySamples(hourly) };
   const now = new Date();
+  displayedForecast = { daily: { ...daily, time: days }, samples: makeHourlySamples(hourly), loadedAt: now };
   updateClock(now);
   weatherPanel.hidden = false;
   chartCard.hidden = false;
@@ -453,11 +613,18 @@ function displayDailyMetrics(now, newForecast = false, unitsChanged = false) {
   const selectionExpired = Boolean(selectedDay && today && selectedDay < today);
   if (selectionExpired) selectedDay = undefined;
   const start = current?.timestamp ?? timestamp;
+  displayedForecast.currentHour = current?.timestamp;
   displayedForecast.upcoming = samples.filter((sample) =>
     sample.timestamp >= start && sample.timestamp < start + 24 * 3600);
-  displayHourly(displayedForecast.upcoming, current?.timestamp);
+  if (timelineDay && today && timelineDay < today) timelineDay = undefined;
+  displayTimeline();
+  planner.update(displayedWeather.location, samples, timestamp);
   const tomorrow = today ? new Date(Date.parse(today + "T00:00:00Z") + 86400000).toISOString().slice(0, 10) : undefined;
   const dayIndex = Array.isArray(daily?.time) && today ? daily.time.indexOf(today) : -1;
+  renderWeatherInsights(insightsPanel, daily, dayIndex, displayedForecast.upcoming);
+  const loadedAt = displayedForecast.loadedAt;
+  renderForecastAdvisories(advisoryDialog, advisoryButton, displayedForecast.upcoming, current?.timestamp ?? timestamp,
+    displayedWeather.location, loadedAt, clockFormat?.format(loadedAt) ?? "horário local indisponível");
   displayPercentage(".precipitation", daily?.precipitation_probability_max?.[dayIndex]);
   const uv = describeUv(daily?.uv_index_max?.[dayIndex]);
   displayMetricReading(weatherPanel.querySelector(".uv-index"), uv.index, "", uv.category);
@@ -474,7 +641,7 @@ function displayDailyMetrics(now, newForecast = false, unitsChanged = false) {
   displayMetricReading(weatherPanel.querySelector(".temperature-min"), daily?.temperature_2m_min?.[dayIndex], " °C");
   if (newForecast || unitsChanged || oldDay !== today) displayForecast(daily, today, tomorrow);
   if (newForecast || unitsChanged || oldDay !== today || !selectedDay) {
-    selectForecastDay(selectedDay, !unitsChanged || oldDay !== today || selectionExpired);
+    selectForecastDay(selectedDay, newForecast || !unitsChanged || oldDay !== today || selectionExpired);
   }
 }
 
@@ -784,6 +951,11 @@ function updateCurrentSection(moveFocus = true) {
   }
   focusCalendarDay = false;
   showActiveEnvironment();
+  if (target === "#painel" && pendingPlannerHour !== undefined) {
+    const timestamp = pendingPlannerHour;
+    pendingPlannerHour = undefined;
+    openPlannerHour(timestamp);
+  }
 }
 history.scrollRestoration = "manual";
 window.addEventListener("hashchange", () => updateCurrentSection());

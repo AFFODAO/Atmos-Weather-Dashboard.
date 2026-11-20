@@ -50,9 +50,9 @@ function enviar(seletor, cidade) {
 
 async function confirmar(acao, confirmarLimpeza) {
   clicar("#configuracoes ." + acao);
-  exigir(buscar("dialog").open, "A limpeza deve pedir confirmação.");
-  clicar('dialog [value="' + (confirmarLimpeza ? "limpar" : "cancelar") + '"]');
-  await esperar(() => !buscar("dialog").open, "O diálogo deve fechar.");
+  exigir(buscar(".history-dialog").open, "A limpeza deve pedir confirmação.");
+  clicar('.history-dialog [value="' + (confirmarLimpeza ? "limpar" : "cancelar") + '"]');
+  await esperar(() => !buscar(".history-dialog").open, "O diálogo deve fechar.");
 }
 
 async function testar() {

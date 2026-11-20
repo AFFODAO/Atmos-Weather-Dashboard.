@@ -1,6 +1,6 @@
 const weatherFields = {
   current: "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,is_day,apparent_temperature,cloud_cover,wind_direction_10m,wind_gusts_10m,precipitation,surface_pressure".split(","),
-  hourly: "uv_index,temperature_2m,weather_code,is_day,precipitation_probability,wind_speed_10m,relative_humidity_2m,cloud_cover".split(","),
+  hourly: "uv_index,temperature_2m,weather_code,is_day,precipitation_probability,wind_speed_10m,relative_humidity_2m,cloud_cover,wind_gusts_10m,precipitation".split(","),
   daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,sunrise,sunset".split(","),
 };
 
@@ -37,6 +37,30 @@ const timestampLimit = Date.UTC(9999, 0, 1) / 1000;
 
 function isTimestamp(value) {
   return Number.isSafeInteger(value) && value >= 0 && value < timestampLimit;
+}
+
+function consecutiveForecastPeriods(samples, matches) {
+  const periods = [];
+  let period;
+  for (const sample of samples) {
+    if (!matches(sample)) {
+      period = undefined;
+      continue;
+    }
+    if (!period || sample.timestamp - period.at(-1).timestamp !== 3600) {
+      period = [];
+      periods.push(period);
+    }
+    period.push(sample);
+  }
+  return periods;
+}
+
+function forecastTimeRange(period) {
+  const first = period[0];
+  const last = period.at(-1);
+  return first === last ? first.label
+    : first.label + " a " + (first.day === last.day ? last.displayTime : last.label);
 }
 
 function timestampEntries(times) {

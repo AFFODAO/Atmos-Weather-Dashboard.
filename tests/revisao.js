@@ -17,6 +17,162 @@ async function consultar(cidade, estado = "ready") {
   if (estado === "ready") exigir(texto(".city") === cidade, "Cidade incorreta após a busca.");
 }
 
+async function testarAvisos() {
+  localStorage.clear();
+  quadro.style.width = "1280px";
+  await abrir("#painel");
+  janela().ajustarRelogio("2026-11-19T02:30:00Z");
+  await consultar("Manaus");
+  const botao = buscar(".advisory-button");
+  const central = buscar(".advisory-dialog");
+  const avisos = () => Array.from(central.querySelectorAll(".advisory-list li"));
+  const aviso = (titulo) => avisos().find((item) => item.querySelector(".advisory-title").textContent === titulo);
+  const totalConsultas = janela().consultas.length;
+  exigir(texto(".advisory-count") === "4", "Conte um aviso por condição e período consecutivo.");
+  botao.focus();
+  botao.click();
+  exigir(central.open && botao.getAttribute("aria-expanded") === "true" &&
+    quadro.contentDocument.activeElement === buscar(".advisory-close") &&
+    texto(".advisory-city").includes("Manaus") && texto(".advisory-source").includes("Open-Meteo") &&
+    buscar(".advisory-updated").dateTime === "2026-11-19T02:30:00.000Z", "Identifique cidade, fonte e consulta no diálogo.");
+  const vento = aviso("Vento e rajadas");
+  const chuva = aviso("Chuva intensa");
+  exigir(vento.textContent.includes("48 km/h") && vento.textContent.includes("75 km/h") &&
+    chuva.textContent.includes("25 mm") && chuva.textContent.includes("23:00") && chuva.textContent.includes("00:00") &&
+    chuva.querySelector(".advisory-severity").textContent === "Elevado",
+  "Una vento e rajadas e destaque o maior nível no período de chuva que cruza a meia-noite.");
+  exigir(aviso("Trovoadas").textContent.includes("granizo") && aviso("Índice UV alto").textContent.includes("Muito alto"),
+    "Descreva a condição que acionou cada aviso.");
+  chuva.querySelector("summary").click();
+  exigir(chuva.querySelector("details").open && !vento.querySelector("details").open,
+    "Expanda os detalhes de cada aviso de forma independente.");
+  quadro.style.width = "320px";
+  await esperar(() => janela().innerWidth === 320, "Redimensione a central para celular.");
+  verificarLargura(320);
+  exigir(central.scrollWidth <= central.clientWidth, "Acomode os avisos dentro do diálogo no celular.");
+  clicar(".advisory-close");
+  await esperar(() => botao.getAttribute("aria-expanded") === "false", "Feche a central e atualize seu estado.");
+  exigir(!central.open && quadro.contentDocument.activeElement === botao && janela().consultas.length === totalConsultas,
+    "Restaure o foco ao sino sem consultar novamente a previsão.");
+  clicar(".theme-button");
+  botao.click();
+  exigir(central.scrollWidth <= central.clientWidth, "Exiba a central no outro tema sem estouro lateral.");
+  janela().ajustarRelogio("2026-11-19T04:30:00Z");
+  janela().eval("displayDailyMetrics(new Date())");
+  exigir(!aviso("Chuva intensa") && texto(".advisory-count") === "3",
+    "Remova acumulados cujo horário de término já passou.");
+  clicar(".advisory-close");
+  await esperar(() => botao.getAttribute("aria-expanded") === "false", "Feche a central antes de atualizar.");
+  janela().reduzirAvisos = true;
+  janela().ajustarRelogio("2026-11-19T04:35:00Z");
+  clicar(".refresh-button");
+  await esperar(() => texto(".advisory-count") === "0", "Remova avisos da previsão substituída.");
+  exigir(buscar(".advisory-updated").dateTime === "2026-11-19T04:35:00.000Z" &&
+    texto(".advisory-empty").includes("Nenhum aviso"), "Atualize o horário da consulta e o estado vazio.");
+  await consultar("Fortaleza");
+  exigir(texto(".advisory-count") === "0" && texto(".advisory-city").includes("Fortaleza") && avisos().length === 0,
+    "Use somente as condições da cidade atual.");
+  await consultar("Campo Grande");
+  exigir(texto(".advisory-empty").includes("insuficientes"), "Diferencie dados ausentes de uma previsão sem avisos.");
+  const limites = janela().eval(`(() => {
+    const niveis = (campo, valores) => valores.map((valor) =>
+      buildForecastAdvisories([{ timestamp: 3600, [campo]: valor }], 0)[0]?.level ?? 0).join("");
+    const periodos = buildForecastAdvisories(
+      [3600, 7200, 14400].map((timestamp) => ({ timestamp, wind_speed_10m: 40, wind_gusts_10m: 75 })), 0);
+    return [
+      niveis("wind_speed_10m", [39.9, 40, 60]),
+      niveis("wind_gusts_10m", [54.9, 55, 75]),
+      niveis("precipitation", [9.9, 10, 25]),
+      niveis("uv_index", [5.4, 5.5, 7.5]),
+      niveis("temperature_2m", [34.9, 35, 40]),
+      niveis("weather_code", [94, 95, 96]),
+      periodos.length, periodos[0].period.length,
+    ];
+  })()`);
+  exigir(limites.join() === "012,012,012,012,012,012,2,2",
+    "Aplique os limites inclusivos, agrupe horas seguidas e preserve períodos separados por lacunas.");
+  resultado.textContent += " Central de avisos, limites inclusivos e expiração dos períodos.";
+}
+
+async function testarPlanejador() {
+  localStorage.clear();
+  quadro.style.width = "1280px";
+  await abrir("#painel");
+  janela().ajustarRelogio("2026-11-19T03:30:00Z");
+  await consultar("Porto Alegre");
+  const consultas = janela().consultas.length;
+  await navegar("planejador");
+  const links = () => [...quadro.contentDocument.querySelectorAll(".planner-results a")];
+  const campo = (nome) => '#planejador [name="' + nome + '"]';
+  const aplicar = () => buscar(".planner-form").requestSubmit();
+  mudar(campo("duration"), "2");
+  aplicar();
+  exigir(links().length === 3 && texto(".planner-location").includes("Porto Alegre"),
+    "Exiba os três períodos de caminhada com a cidade atual.");
+  const inicio = (link) => new Date(Number(link.dataset.timestamp) * 1000).toISOString();
+  exigir(inicio(links()[0]) === "2026-11-21T11:00:00.000Z" &&
+    links().some((link) => inicio(link) === "2026-11-19T11:00:00.000Z") &&
+    texto(".planner-results").includes("Dados parciais para rajadas, UV") &&
+    texto(".planner-results").includes("08:00 a 10:00"), "Ordene horários locais e identifique os dados opcionais ausentes.");
+  clicar(campo("activity") + '[value="ciclismo"]');
+  mudar(campo("duration"), "2");
+  aplicar();
+  exigir(links().length === 2 && links().every((link) => inicio(link).startsWith("2026-11-21")),
+    "Exclua a janela de vento mais intenso para ciclismo e a hora com chuva intensa.");
+  exigir(Number(texto(".planner-results li:first-child .planner-score").split(" ")[0]) >
+    Number(texto(".planner-results li:last-child .planner-score").split(" ")[0]),
+  "Reduza a pontuação quando faltarem rajadas e UV.");
+  mudar(campo("period"), "manhã");
+  aplicar();
+  exigir(links().length === 1 && inicio(links()[0]) === "2026-11-21T11:00:00.000Z",
+    "Aplique a faixa do dia no fuso local.");
+  buscar(campo("maximum")).value = "20";
+  aplicar();
+  exigir(links().length === 0 && texto(".planner-status").includes("Nenhum período"), "Respeite a temperatura máxima preferida.");
+  buscar(campo("maximum")).value = "28";
+  aplicar();
+  clicar(campo("activity") + '[value="caminhada"]');
+  buscar(campo("rain")).value = "10";
+  aplicar();
+  exigir(links().length === 2, "Exclua a janela com chance de chuva de 20% ao limitar a preferência a 10%.");
+  clicar(campo("activity") + '[value="ciclismo"]');
+  exigir(buscar(campo("duration")).value === "2" && buscar(campo("period")).value === "manhã",
+    "Restaure os ajustes de cada atividade.");
+  links()[0].click();
+  await esperar(() => !buscar("#painel").hidden && !buscar(".timeline-reset").hidden, "Abra uma data além das próximas 24 horas.");
+  exigir(buscar(".hourly-detail time").dateTime === "2026-11-21T11:00:00.000Z" &&
+    quadro.contentDocument.activeElement === buscar("#hourly-detail-title") &&
+    janela().eval("chart.samples[chart.index].timestamp") === Date.parse("2026-11-21T11:00:00Z") / 1000 &&
+    janela().consultas.length === consultas, "Selecione o mesmo instante na linha do tempo e no gráfico, sem nova consulta.");
+  clicar(".timeline-reset");
+  exigir(buscar(".timeline-reset").hidden && texto("#hourly-title") === "Próximas 24 horas", "Restaure a previsão de 24 horas.");
+  await navegar("planejador");
+  quadro.style.width = "320px";
+  await esperar(() => janela().innerWidth === 320, "Redimensione o planejador para celular.");
+  verificarLargura(320);
+  clicar(".theme-button");
+  exigir(buscar(".planner-grid").scrollWidth <= buscar(".planner-grid").clientWidth, "Acomode filtros e resultados nos dois temas.");
+  await consultar("Porto Velho");
+  exigir(texto(".planner-location").includes("Porto Velho") && inicio(links()[0]) === "2026-11-20T12:00:00.000Z" &&
+    texto(".planner-results").includes("08:00 a 10:00"), "Preserve a manhã local ao mudar para um fuso diferente.");
+  await consultar("Fortaleza");
+  exigir(texto(".planner-location").includes("Fortaleza") && links().every((link) => !inicio(link).startsWith("2026-11-21")),
+    "Atualize os períodos ao mudar de cidade e respeite os dados de menor alcance.");
+  await consultar("Campo Grande");
+  exigir(links().length === 0 && texto(".planner-status").includes("indisponível"), "Identifique a falta de amostras horárias.");
+  await abrir("#planejador");
+  exigir(buscar(campo("activity") + '[value="ciclismo"]').checked && buscar(campo("duration")).value === "2",
+    "Restaure preferências salvas após recarregar.");
+  localStorage.setItem("atmos-planejador", JSON.stringify({
+    activity: "ciclismo", options: { ciclismo: { min: 40, max: 15, rain: -1, duration: 8, time: ["manhã"] } },
+  }));
+  await abrir("#planejador");
+  exigir(buscar(campo("minimum")).value === "12" && buscar(campo("maximum")).value === "28" &&
+    buscar(campo("rain")).value === "25" && buscar(campo("duration")).value === "1" &&
+    buscar(campo("period")).value === "qualquer", "Valide preferências previamente salvas antes de usá-las.");
+  resultado.textContent += " Planejador com janelas locais, preferências validadas e ligação à linha do tempo.";
+}
+
 function verificarLargura(largura) {
   const raiz = quadro.contentDocument.documentElement;
   exigir(janela().innerWidth === largura && raiz.scrollWidth <= janela().innerWidth,
@@ -146,12 +302,25 @@ async function testarRevisao() {
   await esperar(() => !buscar(".air-data").hidden, "A nova tentativa deve recuperar a qualidade do ar.");
 
   await navegar("painel");
+  janela().ajustarRelogio("2026-03-08T05:30:00Z");
+  await consultar("Nova York");
+  exigir(texto(".hourly-list li:nth-child(2) time") === "01:00" &&
+    texto(".hourly-list li:nth-child(3) time") === "03:00",
+  "Avance do horário de 01:00 para 03:00 no início do horário de verão.");
   janela().ajustarRelogio("2026-11-01T04:00:00Z");
   await consultar("Nova York");
   const horasRepetidas = Array.from(quadro.contentDocument.querySelectorAll(".hourly-list time"))
     .filter((hora) => hora.textContent.startsWith("01:00"));
   exigir(horasRepetidas.length === 2 && horasRepetidas[0].textContent !== horasRepetidas[1].textContent,
     "Diferencie as duas ocorrências de 01:00 na mudança de horário de verão.");
+  for (const hora of horasRepetidas) {
+    const botao = hora.closest("button");
+    botao.click();
+    exigir(botao.getAttribute("aria-pressed") === "true" &&
+      buscar(".hourly-detail time").dateTime === hora.dateTime &&
+      janela().eval("chart.samples[chart.index].timestamp") === Number(botao.dataset.timestamp),
+    "Selecione separadamente cada ocorrência de 01:00 também no gráfico.");
+  }
   clicar(".forecast-list [data-day='2026-11-01']");
   janela().ajustarRelogio("2026-11-02T06:00:00Z");
   janela().eval("displayDailyMetrics(new Date())");
@@ -193,6 +362,129 @@ async function testarRevisao() {
     "A troca de unidade deve funcionar mesmo quando o armazenamento falha.");
   exigir(janela().errosDoATMOS.length === 0, "O navegador registrou erros: " + janela().errosDoATMOS.join(" · "));
   resultado.textContent = "Regressão do ATMOS em 1.280, 350 e 320 px.";
+}
+
+async function testarLinhaDoTempo() {
+  localStorage.clear();
+  quadro.style.width = "1280px";
+  quadro.style.height = "700px";
+  await abrir("#painel");
+  janela().ajustarRelogio("2026-11-19T02:30:00Z");
+  await consultar("Rio Branco");
+  const selecionado = ".hourly-choice[aria-pressed='true']";
+  const leitura = (campo) => texto('.hourly-detail [data-hourly="' + campo + '"]');
+  exigir(texto(selecionado + " time") === "21:00" && buscar(".hourly-list").children.length === 24,
+    "Comece na hora local e mostre 24 amostras da previsão.");
+  const consultas = janela().consultas.length;
+  await navegar("calendario");
+  clicar('.calendar-days [data-day="2026-11-19"]');
+  await navegar("painel");
+  clicar(".hourly-list li:nth-child(2) button");
+  exigir(texto(selecionado + " time") === "22:00" && buscar(selecionado).tabIndex === 0 &&
+    buscar(".hourly-detail time").dateTime === "2026-11-19T03:00:00.000Z",
+  "Selecione e exponha o instante correspondente a 22:00 no Acre.");
+  for (const [campo, valor] of [
+    ["temperature_2m", "24,5 °C"], ["weather_code", "Chuva"], ["relative_humidity_2m", "92%"],
+    ["wind_speed_10m", "9 km/h"], ["precipitation_probability", "83%"], ["uv_index", "0"], ["cloud_cover", "95%"],
+  ]) exigir(leitura(campo) === valor, "Atualize o valor horário de " + campo + ".");
+  clicar(".hourly-charts-link");
+  await esperar(() => !buscar("#graficos").hidden, "Abra os gráficos da previsão horária.");
+  exigir(texto("#chart-reading").includes("22:00") && texto("#chart-reading").includes("24,5 °C"),
+    "O gráfico de temperatura deve acompanhar o horário selecionado.");
+  for (const [campo, valor] of [
+    ["relative_humidity_2m", "92%"], ["wind_speed_10m", "9 km/h"], ["precipitation_probability", "83%"],
+    ["uv_index", "0"], ["cloud_cover", "95%"],
+  ]) {
+    mudar("#chart-metric", campo);
+    exigir(texto("#chart-reading").includes("22:00") && texto("#chart-reading").endsWith(valor),
+      "Mantenha o instante e a leitura ao trocar a métrica do gráfico.");
+  }
+  await navegar("painel");
+  quadro.style.width = "320px";
+  await esperar(() => janela().innerWidth === 320, "Redimensione a linha do tempo para celular.");
+  verificarLargura(320);
+  buscar(selecionado).focus();
+  tecla(selecionado, "ArrowRight");
+  exigir(texto(selecionado + " time") === "23:00" && leitura("uv_index") === "Indisponível" &&
+    leitura("relative_humidity_2m") === "Indisponível" && leitura("weather_code") === "Céu limpo",
+  "Avance pelo teclado e preserve as leituras disponíveis quando outras faltarem.");
+  tecla(selecionado, "ArrowRight");
+  exigir(texto(selecionado + " time") === "00:00" && texto(selecionado + " .hourly-date").startsWith("19") &&
+    buscar(".hourly-detail time").dateTime === "2026-11-19T05:00:00.000Z" &&
+    quadro.contentDocument.activeElement === buscar(selecionado), "Mantenha a data e o foco na virada da meia-noite.");
+  tecla(selecionado, "End");
+  await esperar(() => buscar(".hourly-list").scrollLeft > 0, "Role a faixa até o horário selecionado no celular.");
+  tecla(selecionado, "Home");
+  exigir(texto(selecionado + " time") === "21:00" && janela().consultas.length === consultas,
+    "Selecionar horários e abrir gráficos deve reutilizar a previsão carregada.");
+  await consultar("Fernando de Noronha");
+  exigir(texto(selecionado + " time") === "00:00" && leitura("temperature_2m") === "90 °C",
+    "Ao trocar de cidade, selecione a hora do novo fuso e mostre suas próprias leituras.");
+  resultado.textContent += " Linha do tempo sincronizada aos gráficos, com navegação por teclado e datas locais.";
+}
+
+async function testarInsights() {
+  localStorage.clear();
+  quadro.style.width = "1280px";
+  await abrir("#painel");
+  janela().ajustarRelogio("2026-11-19T02:30:00Z");
+  await consultar("Manaus");
+  const destaques = () => Array.from(quadro.contentDocument.querySelectorAll(".insights-list li"));
+  const titulos = () => destaques().map((item) => item.querySelector("h3").textContent);
+  const dataLocal = (dia) => new Intl.DateTimeFormat("pt-BR", {
+    day: "numeric", month: "short", timeZone: "UTC",
+  }).format(new Date("2026-11-" + dia + "T00:00:00Z"));
+  exigir(texto(".insights-summary").includes("chance de chuva de até 70%") &&
+    texto(".insights-summary").includes("UV máximo 1 · Baixo"),
+  "Use a linha diária de hoje em Manaus, apesar de a data UTC já ter mudado.");
+  exigir(titulos().join("|") === "Chance de chuva|Exposição ao sol|Vento forte|Aquecimento previsto",
+    "Priorize uma sugestão por condição sem recomendar atividades no período chuvoso.");
+  const chuva = destaques()[0];
+  exigir(chuva.textContent.includes("85%") && chuva.textContent.includes("guarda-chuva") &&
+    chuva.querySelector(".insights-time").textContent === dataLocal(18) + " às 23:00 a " + dataLocal(19) + " às 00:00",
+  "Mostre os dois dias locais no período de chuva que cruza a meia-noite.");
+  exigir(destaques()[1].textContent.includes("9 · Muito alto") && destaques()[2].textContent.includes("48 km/h") &&
+    destaques()[3].textContent.includes("18 °C para 27 °C"), "Use os picos e a variação das amostras horárias.");
+  clicar(".insights-method summary");
+  exigir(buscar(".insights-method").open && texto(".insights-criteria").includes("60%") &&
+    texto(".insights-criteria").includes("40 km/h"), "Exponha os critérios aplicados pelo assistente.");
+  const consultas = janela().consultas.length;
+  chuva.querySelector("button").click();
+  exigir(texto(".hourly-detail [data-hourly='precipitation_probability']") === "85%" &&
+    buscar(".hourly-detail time").dateTime === "2026-11-19T04:00:00.000Z" &&
+    quadro.contentDocument.activeElement === buscar("#hourly-detail-title") &&
+    janela().consultas.length === consultas, "Abra o pico de chuva na linha do tempo, sem consultar a API.");
+  await consultar("Fortaleza");
+  exigir(texto(".insights-summary").includes("0%") && titulos().join() === "Período favorável ao ar livre" &&
+    texto(".insights-time") === dataLocal(19) + " às 06:00 a 18:00" && buscar(".insights-method").open,
+  "Atualize os horários e mostre apenas a sugestão favorável na cidade com tempo aberto.");
+  quadro.style.width = "320px";
+  await esperar(() => janela().innerWidth === 320, "Redimensione as sugestões para celular.");
+  verificarLargura(320);
+  clicar(".theme-button");
+  exigir(buscar(".insights").scrollWidth <= buscar(".insights").clientWidth, "Mantenha o conteúdo dentro do cartão nos dois temas.");
+  const intervalo = janela().eval(`(() => {
+    const amostra = { precipitation_probability: 25, uv_index: 2.4, wind_speed_10m: 24, temperature_2m: 16,
+      is_day: 1, weather_code: 0 };
+    const previsao = (horas, alteracao) => buildWeatherInsights({}, -1, horas.map((timestamp, i) =>
+      ({ ...amostra, timestamp, ...(i === 1 ? alteracao : {}) }))).entries.map(({ title }) => title).join();
+    return [
+      previsao([0, 3600]),
+      previsao([0, 7200]),
+      previsao([0, 3600], { uv_index: undefined }),
+      previsao([0, 3600], { uv_index: 2.5, precipitation_probability: 60, wind_speed_10m: 40 }),
+      previsao([0, 3600], { wind_gusts_10m: 55 }),
+      previsao([0, 3600, 7200], { precipitation: 10 }),
+    ];
+  })()`);
+  exigir(intervalo.join("|") === "Período favorável ao ar livre|||Chance de chuva,Exposição ao sol,Vento forte||",
+    "Aplique os limites inclusive quando rajadas ou chuva intensa impedirem uma sugestão pelos critérios da central.");
+  await consultar("Campo Grande");
+  exigir(destaques().length === 0 && texto(".insights-summary").includes("indisponível") &&
+    texto(".insights-empty").includes("insuficiente") && buscar(".hourly-detail").hidden,
+  "Sinalize a falta de previsões sem reaproveitar sugestões de outra cidade.");
+  exigir(janela().errosDoATMOS.length === 0, "Conclua os testes do assistente sem erros no navegador.");
+  resultado.textContent += " Insights com regras determinísticas e horários locais.";
 }
 
 async function testarServicosReais() {
@@ -338,7 +630,7 @@ async function testarNavegacao() {
   await consultar("Recife");
   clicar(".favorite-toggle");
   janela().eval('loadLeaflet.pending = Promise.resolve(undefined)');
-  const paginas = ["painel", "graficos", "favoritos", "comparar", "mapas", "qualidade-do-ar", "calendario", "configuracoes"];
+  const paginas = ["painel", "graficos", "favoritos", "comparar", "mapas", "qualidade-do-ar", "calendario", "planejador", "configuracoes"];
   for (const largura of [1280, 320]) {
     quadro.style.width = largura + "px";
     await esperar(() => janela().innerWidth === largura, "Atualize a largura testada.");
@@ -395,7 +687,7 @@ async function testarNavegacao() {
   await abrir("#graficos");
   exigir(!buscar("#graficos").hidden && buscar("#painel").hidden && texto(".charts-location").includes("Recife"),
     "Um link direto para Gráficos deve carregar apenas essa página com a cidade salva.");
-  resultado.textContent += " Oito páginas independentes, barra lateral visível durante a rolagem e histórico de navegação.";
+  resultado.textContent += " Nove páginas independentes, barra lateral visível durante a rolagem e histórico de navegação.";
 }
 
 async function testarContexto() {
@@ -413,8 +705,10 @@ async function testarContexto() {
   const vento = ajuda("wind");
   const horario = ajuda("horaria");
   const semanal = ajuda("semanal");
-  const recolhida = ({ painel, botao }) => painel.inert && botao.getAttribute("aria-expanded") === "false";
-  const expandida = ({ painel, botao }) => !painel.inert && botao.getAttribute("aria-expanded") === "true";
+  const recolhida = ({ painel, botao }) => painel.inert && botao.getAttribute("aria-expanded") === "false" &&
+    botao.textContent === "Saiba mais" && botao.getAttribute("aria-label").startsWith("Saiba mais sobre ");
+  const expandida = ({ painel, botao }) => !painel.inert && botao.getAttribute("aria-expanded") === "true" &&
+    botao.textContent === "Ocultar detalhes" && botao.getAttribute("aria-label").startsWith("Ocultar detalhes sobre ");
   for (const item of quadro.contentDocument.querySelectorAll(".weather .explanation-toggle")) {
     const painel = buscar("#" + item.getAttribute("aria-controls"));
     exigir(item.tagName === "BUTTON" && item.tabIndex === 0 && painel &&
@@ -447,10 +741,17 @@ async function testarContexto() {
   await navegar("painel");
   for (const tema of ["dark", "light"]) {
     exigir(buscar("html").dataset.theme === tema, "Aplique o tema " + tema + ".");
-    for (const largura of [1280, 350, 320]) {
+    for (const largura of [1280, 768, 350, 320]) {
       quadro.style.width = largura + "px";
       await esperar(() => janela().innerWidth === largura, "Redimensione o painel.");
       verificarLargura(largura);
+      const gradeDiaria = buscar(".daily-metrics .metric-grid");
+      const colunas = janela().getComputedStyle(gradeDiaria).gridTemplateColumns.split(" ").length;
+      exigir(colunas === (largura === 1280 ? 4 : 2), "Distribua os quatro cartões diários em linhas completas.");
+      if (largura === 1280) {
+        const alturas = Array.from(gradeDiaria.children, (cartao) => cartao.getBoundingClientRect().height);
+        exigir(alturas.every((altura) => altura === alturas[0]), "Alinhe os cartões diários recolhidos.");
+      }
       for (const seletor of leituras) {
         const leitura = buscar(seletor);
         exigir(leitura.getBoundingClientRect().height > 0 && /\d/.test(leitura.textContent) &&
