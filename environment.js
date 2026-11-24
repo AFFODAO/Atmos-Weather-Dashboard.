@@ -342,6 +342,7 @@ const airIndexes = {
 };
 
 const airFields = "us_aqi,european_aqi,pm2_5,pm10";
+const airCacheAge = 15 * 60 * 1000;
 
 class AirQuality {
   constructor(panel, { fetchJson, formatReading, displayMetricReading }) {
@@ -380,7 +381,7 @@ class AirQuality {
     this.request?.controller.abort();
     this.request = undefined;
     const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.time < 15 * 60 * 1000) {
+    if (cached && Date.now() - cached.time < airCacheAge) {
       if (this.data.hidden || this.displayedKey !== key || this.displayedHour !== Math.floor(Date.now() / 3600000)) {
         this.render(cached.result);
       }
@@ -411,6 +412,18 @@ class AirQuality {
     } finally {
       if (this.request === request) this.request = undefined;
     }
+  }
+
+  cachedEstimate(location) {
+    const cached = this.cache.get(location.latitude + "," + location.longitude);
+    if (!cached || Date.now() - cached.time >= airCacheAge) return undefined;
+    const { current, timezone } = cached.result;
+    return {
+      ...Object.fromEntries(airFields.split(",").map((key) => [key, forecastValue(key, current?.[key])])),
+      time: isTimestamp(current?.time) ? current.time : undefined,
+      timezone: validTimeZone(timezone, location.timezone),
+      scale: this.scale.value,
+    };
   }
 
   render(result) {

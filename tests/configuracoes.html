@@ -14,6 +14,14 @@
       await testarInsights();
       await testarAvisos();
       await testarPlanejador();
+      await testarLayoutPainel();
+      await testarHistoricoPrevisoes();
+      await testarAssistenteMeteorologico();
+      await testarAssistenteGenerativo();
+      await testarAnaliseMeteorologica();
+      await testarInstalacao();
+      await testarExperienciaMovel();
+      await testarModoOffline();
     };
   teste().then(() => publicar("Aprovado. " + resultado.textContent))
     .catch((erro) => publicar(erro.stack));

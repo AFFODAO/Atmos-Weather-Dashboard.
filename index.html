@@ -2,10 +2,15 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="ATMOS, seu painel de previsão do tempo.">
   <title>ATMOS · Previsão do tempo</title>
   <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#101020">
+  <meta name="apple-mobile-web-app-title" content="ATMOS">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/atmos-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="./icons/atmos-192.png">
   <script src="./theme.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,12 +18,19 @@
   <link rel="stylesheet" href="./style.css">
   <script src="./weather-data.js" defer></script>
   <script src="./charts.js" defer></script>
+  <script src="./forecast-history.js" defer></script>
   <script src="./cities.js" defer></script>
   <script src="./compare.js" defer></script>
   <script src="./environment.js" defer></script>
   <script src="./insights.js" defer></script>
   <script src="./advisories.js" defer></script>
   <script src="./planner.js" defer></script>
+  <script src="./dashboard.js" defer></script>
+  <script src="./assistant-config.js" defer></script>
+  <script src="./assistant-analysis.js" defer></script>
+  <script src="./assistant.js" defer></script>
+  <script src="./offline-forecast.js" defer></script>
+  <script src="./pwa.js" defer></script>
   <script src="./script.js" defer></script>
 </head>
 <body>
@@ -27,7 +39,8 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <a href="#painel" class="brand" aria-label="ATMOS, painel"><span class="brand-mark" aria-hidden="true">◒</span><span class="brand-name">ATMOS</span></a>
-        <button type="button" class="control sidebar-toggle" aria-label="Recolher menu" aria-expanded="true" aria-controls="menu" title="Recolher menu"><span aria-hidden="true">☰</span></button>
+        <p class="mobile-section-name" aria-hidden="true">Painel</p>
+        <button type="button" class="control sidebar-toggle" aria-label="Recolher menu" aria-expanded="true" aria-controls="menu" title="Recolher menu"><span aria-hidden="true">☰</span><span class="mobile-menu-label" aria-hidden="true">Páginas</span></button>
       </div>
 
       <nav id="menu" aria-label="Navegação principal">
@@ -39,6 +52,7 @@
         <a class="nav-item" href="#qualidade-do-ar" aria-label="Qualidade do ar" title="Qualidade do ar"><span aria-hidden="true">≋</span><span class="nav-label">Qualidade do ar</span></a>
         <a class="nav-item" href="#calendario" title="Calendário" aria-label="Calendário"><span aria-hidden="true">▣</span><span class="nav-label">Calendário</span></a>
         <a class="nav-item" href="#planejador" aria-label="Planejador" title="Planejador"><span aria-hidden="true">◷</span><span class="nav-label">Planejador</span></a>
+        <a class="nav-item" href="#atmos-ai" aria-label="ATMOS AI" title="ATMOS AI"><span aria-hidden="true">✧</span><span class="nav-label">ATMOS AI</span></a>
         <a class="nav-item" href="#configuracoes" title="Configurações" aria-label="Configurações"><span aria-hidden="true">⚙</span><span class="nav-label">Configurações</span></a>
       </nav>
     </aside>
@@ -67,6 +81,15 @@
       </header>
 
       <p class="status weather-status" role="status" tabindex="-1"></p>
+      <div class="status pwa-connectivity" hidden>
+        <p class="connection-message" role="status"></p>
+        <p class="saved-forecast-message" hidden>Previsão salva em <time></time>. Os dados podem estar desatualizados. Avisos e recomendações aguardam uma nova consulta.</p>
+        <button class="control connection-retry" type="button">Tentar atualizar a previsão</button>
+      </div>
+      <div class="status pwa-update" hidden>
+        <p class="pwa-update-message" role="status">Uma atualização do ATMOS está pronta.</p>
+        <button class="control pwa-update-button" type="button">Atualizar aplicativo</button>
+      </div>
       <p class="city-feedback sr-only" role="status"></p>
 
       <dialog class="panel advisory-dialog" id="central-avisos" aria-labelledby="advisory-heading" aria-describedby="advisory-note">
@@ -129,11 +152,11 @@
           <form class="panel planner-form">
             <fieldset class="planner-activities">
               <legend>Escolha uma atividade</legend>
-              <label><input type="radio" name="activity" value="caminhada"><span aria-hidden="true">🚶</span> Caminhada</label>
-              <label><input type="radio" name="activity" value="corrida"><span aria-hidden="true">🏃</span> Corrida</label>
-              <label><input type="radio" name="activity" value="ciclismo"><span aria-hidden="true">🚲</span> Ciclismo</label>
-              <label><input type="radio" name="activity" value="passeio"><span aria-hidden="true">🌿</span> Passeio ao ar livre</label>
-              <label><input type="radio" name="activity" value="carro"><span aria-hidden="true">🚗</span> Lavar o carro</label>
+              <label><input type="radio" name="activity" value="caminhada"><span aria-hidden="true">🚶</span> <span class="planner-activity-name">Caminhada</span></label>
+              <label><input type="radio" name="activity" value="corrida"><span aria-hidden="true">🏃</span> <span class="planner-activity-name">Corrida</span></label>
+              <label><input type="radio" name="activity" value="ciclismo"><span aria-hidden="true">🚲</span> <span class="planner-activity-name">Ciclismo</span></label>
+              <label><input type="radio" name="activity" value="passeio"><span aria-hidden="true">🌿</span> <span class="planner-activity-name">Passeio ao ar livre</span></label>
+              <label><input type="radio" name="activity" value="carro"><span aria-hidden="true">🚗</span> <span class="planner-activity-name">Lavar o carro</span></label>
             </fieldset>
             <fieldset class="planner-preferences">
               <legend>Preferências</legend>
@@ -162,23 +185,36 @@
             <h2 id="planner-result-title">Melhores horários</h2>
             <p class="metric-context">Previsão das próximas 72 horas, conforme a disponibilidade, no horário local da cidade.</p>
             <p class="planner-status" role="status" tabindex="-1">Consulte uma cidade para planejar uma atividade.</p>
-            <ol class="planner-results"></ol>
+            <div class="planner-results"></div>
             <template>
-              <li>
-                <header><span class="planner-icon" aria-hidden="true"></span><div><h3></h3><p class="planner-period"></p><p class="planner-condition"></p></div>
-                  <span class="planner-score"></span></header>
+              <article class="planner-day">
+                <header><span class="planner-icon" aria-hidden="true"></span><div><h4></h4><p class="planner-activity"></p><p class="planner-period"></p><p class="planner-condition"></p></div></header>
+                <div class="planner-score">
+                  <span class="planner-score-label"></span>
+                  <meter class="planner-score-meter" min="0" aria-label="Adequação estimada às preferências"></meter>
+                </div>
                 <dl><div><dt>Temperatura</dt><dd class="planner-temperature"></dd></div>
-                  <div><dt>Chance de chuva</dt><dd class="planner-rain"></dd></div></dl>
+                  <div><dt>Chance de chuva</dt><dd class="planner-rain"></dd></div>
+                  <div><dt>Vento</dt><dd class="planner-wind"></dd></div>
+                  <div><dt>Rajadas</dt><dd class="planner-gusts"></dd></div>
+                  <div><dt>Índice UV</dt><dd class="planner-uv"></dd></div></dl>
                 <p class="planner-reason"></p>
-                <p class="planner-confidence"></p>
+                <details class="planner-breakdown">
+                  <summary>Entenda a pontuação</summary>
+                  <ul></ul>
+                  <p class="planner-calculation"></p>
+                  <p class="metric-context">A nota estima a adequação às preferências. A previsão pode mudar e a pontuação não garante segurança.</p>
+                </details>
                 <a href="#painel">Ver na linha do tempo</a>
-              </li>
+              </article>
             </template>
             <details class="planner-method">
               <summary>Como a pontuação é calculada</summary>
               <p class="planner-limits metric-context"></p>
-              <p class="metric-context">A nota compara temperatura, chance de chuva, vento, rajadas, UV e condições do céu com os critérios da atividade. Leituras ausentes reduzem a nota. A pontuação é uma estimativa de adequação às preferências.</p>
+              <p class="metric-context">As condições meteorológicas valem até 75 pontos e o horário vale até 25. Os pesos mudam por atividade. Para cada critério, o cálculo usa a média das notas horárias com leitura e distribui os 75 pontos na proporção dos pesos e da cobertura. Horas sem leitura entram em um desconto separado. O UV fica fora do cálculo nas horas sem luz.</p>
+              <p class="metric-context">O desconto por dados ausentes equivale a 25% dos 75 pontos meteorológicos multiplicados pela parcela do peso aplicável sem leitura. A espera desconta cinco pontos a cada 24 horas, proporcionalmente.</p>
               <p class="metric-context">O horário diurno vai das 06h às 19h no fuso da cidade e considera a indicação de luz do dia da previsão quando disponível. Em qualquer horário, as janelas diurnas vêm primeiro. A corrida favorece o início da manhã e o fim da tarde, e períodos próximos ganham vantagem quando as condições são parecidas.</p>
+              <p class="metric-context">Cada hora contribui com 100% dos pontos de horário na faixa preferencial de corrida, 75% na faixa compatível ou 35% fora do período diurno quando a opção Qualquer horário está selecionada. A contribuição do período é a média das horas.</p>
               <p class="metric-context">Cada hora precisa ter temperatura e chance de chuva disponíveis. O planejador deixa de fora períodos com chuva intensa, calor elevado ou condições previstas além de céu limpo a encoberto.</p>
             </details>
           </section>
@@ -188,6 +224,16 @@
       <section id="configuracoes" data-page aria-labelledby="settings-title" tabindex="-1" hidden>
         <header class="page-heading"><h1 id="settings-title">Configurações</h1></header>
         <div class="settings-panel">
+          <section class="panel settings-section settings-group pwa-install" aria-labelledby="pwa-install-title" hidden>
+            <h2 id="pwa-install-title">Instalação do aplicativo</h2>
+            <button class="control pwa-install-button" type="button" hidden>Instalar ATMOS</button>
+            <details class="page-help">
+              <summary>Como instalar o ATMOS</summary>
+              <p>No computador ou no Android, procure a opção de instalar o aplicativo ou adicionar à tela inicial no menu do navegador, quando disponível.</p>
+              <p>No iPhone ou iPad, abra o ATMOS no Safari, toque em <strong>Compartilhar</strong> e escolha <strong>Adicionar à Tela de Início</strong>. Se aparecer a opção <strong>Abrir como App da Web</strong>, mantenha-a ativada.</p>
+            </details>
+            <p class="metric-context" role="status"></p>
+          </section>
           <section class="panel settings-section settings-display" aria-labelledby="settings-display-title">
             <h2 id="settings-display-title">Unidades e aparência</h2>
             <div class="settings-preferences">
@@ -251,6 +297,7 @@
       <header class="page-heading dashboard-heading">
         <h1 id="dashboard-title">Visão geral</h1>
         <p class="current-date"></p>
+        <a class="control assistant-shortcut" href="#atmos-ai">Abrir ATMOS AI</a>
       </header>
       <div class="dashboard skeleton" aria-hidden="true" hidden>
         <div class="overview">
@@ -293,6 +340,15 @@
             <button class="control favorite-toggle" type="button" aria-label="Cidade favorita"
               aria-pressed="false" title="Salvar cidade como favorita" hidden><span aria-hidden="true">♡</span></button>
           </section>
+
+          <details class="dashboard-layout">
+            <summary>Personalizar painel</summary>
+            <div class="dashboard-layout-actions">
+              <p class="metric-context">Use as setas dos cartões para mudar a ordem dentro de cada grupo.</p>
+              <button class="control dashboard-reset" type="button">Restaurar layout padrão</button>
+            </div>
+            <p class="metric-context dashboard-layout-status" role="status"></p>
+          </details>
 
           <section aria-labelledby="metrics-title">
             <h2 id="metrics-title" class="metrics-title">Métricas atuais</h2>
@@ -462,49 +518,92 @@
             <h2 id="forecast-title">Previsão semanal</h2>
             <a href="#calendario">Abrir calendário</a>
           </div>
-          <p class="forecast-range" hidden></p>
-          <ol class="forecast-list"></ol>
-          <p class="forecast-status" hidden>Previsão semanal indisponível.</p>
-          <div class="weather-explanation">
-            <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-semanal" aria-label="Saiba mais sobre a previsão semanal">Saiba mais</button>
-            <div id="explicacao-semanal" class="explanation-panel" inert>
-              <div class="explanation-inner">
-                <p class="metric-context">Cada dia mostra as temperaturas máxima e mínima e a maior chance horária de precipitação. Selecione uma data para consultar os horários do sol e o índice UV.</p>
+          <details class="dashboard-optional" id="painel-semanal" open>
+            <summary><span>Mostrar previsão</span><span>Recolher previsão</span></summary>
+            <p class="forecast-range" hidden></p>
+            <ol class="forecast-list"></ol>
+            <p class="forecast-status" hidden>Previsão semanal indisponível.</p>
+            <div class="weather-explanation">
+              <button class="explanation-toggle" type="button" aria-expanded="false" aria-controls="explicacao-semanal" aria-label="Saiba mais sobre a previsão semanal">Saiba mais</button>
+              <div id="explicacao-semanal" class="explanation-panel" inert>
+                <div class="explanation-inner">
+                  <p class="metric-context">Cada dia mostra as temperaturas máxima e mínima e a maior chance horária de precipitação. Selecione uma data para consultar os horários do sol e o índice UV.</p>
+                </div>
               </div>
             </div>
-          </div>
+          </details>
         </section>
 
         <section class="panel insights" aria-labelledby="insights-title">
           <h2 id="insights-title">ATMOS Insights</h2>
-          <p class="insights-summary"></p>
-          <p class="insights-empty" hidden></p>
-          <ul class="insights-list insights-preview"></ul>
-          <details class="page-help insights-more" hidden>
-            <summary>Mais sugestões</summary>
-            <ul class="insights-list insights-extra"></ul>
-          </details>
-          <template>
-            <li>
-              <span class="insights-icon" aria-hidden="true"></span>
-              <div>
-                <h3></h3>
-                <p class="insights-time"></p>
-                <p class="insights-advice"></p>
-                <button class="insights-hour" type="button" aria-controls="detalhes-horarios">Ver horário</button>
-              </div>
-            </li>
-          </template>
-          <details class="page-help insights-method">
-            <summary>Como as sugestões são calculadas</summary>
-            <p class="metric-context">Sugestões para as próximas 24 horas, com base na previsão local.</p>
-            <p class="insights-criteria metric-context"></p>
-            <p class="metric-context">Os horários são locais e as condições podem mudar.</p>
+          <details class="dashboard-optional" id="painel-sugestoes" open>
+            <summary><span>Mostrar sugestões</span><span>Recolher sugestões</span></summary>
+            <p class="insights-summary"></p>
+            <p class="insights-empty" hidden></p>
+            <ul class="insights-list insights-preview"></ul>
+            <details class="page-help insights-more" hidden>
+              <summary>Mais sugestões</summary>
+              <ul class="insights-list insights-extra"></ul>
+            </details>
+            <template>
+              <li>
+                <span class="insights-icon" aria-hidden="true"></span>
+                <div>
+                  <h3></h3>
+                  <p class="insights-time"></p>
+                  <p class="insights-advice"></p>
+                  <button class="insights-hour" type="button" aria-controls="detalhes-horarios">Ver horário</button>
+                </div>
+              </li>
+            </template>
+            <details class="page-help insights-method">
+              <summary>Como as sugestões são calculadas</summary>
+              <p class="metric-context">Sugestões para as próximas 24 horas, com base na previsão local.</p>
+              <p class="insights-criteria metric-context"></p>
+              <p class="metric-context">Os horários são locais e as condições podem mudar.</p>
+            </details>
           </details>
         </section>
       </div>
       </section>
 
+      <section id="atmos-ai" data-page aria-labelledby="assistant-title" tabindex="-1" hidden>
+        <header class="page-heading">
+          <h1 id="assistant-title">ATMOS AI</h1>
+          <p>Assistente meteorológico com dados já consultados para a cidade selecionada.</p>
+        </header>
+        <div class="panel assistant">
+          <div class="assistant-header">
+            <p class="assistant-location metric-context">Selecione uma cidade para começar.</p>
+            <button class="control assistant-clear" type="button" disabled>Limpar conversa</button>
+          </div>
+          <label class="assistant-mode metric-context" hidden>
+            <input type="checkbox" autocomplete="off">
+            Usar IA generativa. A pergunta e um resumo da previsão são enviados à OpenAI. Deixe desmarcado para responder neste navegador.
+          </label>
+          <div class="assistant-suggestions" role="group" aria-label="Perguntas sugeridas">
+            <button class="control" type="button">Vai chover hoje?</button>
+            <button class="control" type="button">Qual a temperatura amanhã?</button>
+            <button class="control" type="button">Qual o índice UV hoje?</button>
+            <button class="control" type="button">Como está o vento agora?</button>
+            <button class="control" type="button">Como está a qualidade do ar?</button>
+            <button class="control" type="button">Qual o melhor horário para caminhar?</button>
+          </div>
+          <div class="assistant-suggestions assistant-context-questions" role="group" aria-label="Perguntas sobre os dados disponíveis"></div>
+          <div class="assistant-log" role="log" aria-label="Histórico da conversa" aria-relevant="additions" tabindex="0">
+            <p class="metric-context assistant-empty">As mensagens desta visita aparecem aqui.</p>
+          </div>
+          <p class="assistant-status metric-context" role="status"></p>
+          <form class="assistant-form">
+            <label for="assistant-question">Sua pergunta</label>
+            <div>
+              <input class="control" id="assistant-question" name="question" type="text" maxlength="280" autocomplete="off" aria-describedby="assistant-error">
+              <button class="control assistant-send" type="submit">Enviar</button>
+            </div>
+            <p class="assistant-error" id="assistant-error" role="alert"></p>
+          </form>
+        </div>
+      </section>
       <section id="graficos" data-page aria-labelledby="charts-title" tabindex="-1" hidden>
         <header class="page-heading"><h1 id="charts-title">Gráficos da previsão</h1><p class="charts-location"></p></header>
         <p class="panel charts-unavailable" hidden>Busque uma cidade para consultar os gráficos da previsão.</p>
@@ -541,6 +640,69 @@
             </label>
           </div>
         </div>
+        <section class="panel charts forecast-history" aria-labelledby="forecast-history-title">
+          <div class="charts-header">
+            <h2 id="forecast-history-title">Evolução das previsões</h2>
+            <button class="control forecast-history-clear" type="button" disabled>Apagar histórico de previsões</button>
+          </div>
+          <p class="metric-context">Compare previsões diárias guardadas neste navegador a partir das suas consultas. Os registros começam com a primeira previsão salva e representam o que o modelo previa na época da consulta. O histórico de observações meteorológicas é um dado diferente.</p>
+          <div class="forecast-history-filters">
+            <label>Cidade <select id="forecast-history-city" class="control" disabled></select></label>
+            <label>Data-alvo da previsão <select id="forecast-history-target" class="control" disabled></select></label>
+          </div>
+          <p class="metric-context forecast-history-storage" role="status"></p>
+          <p class="metric-context forecast-history-status" role="status" tabindex="-1"></p>
+          <div class="forecast-history-comparison" hidden>
+            <p class="forecast-history-records"><strong>Primeira previsão guardada</strong> <span class="forecast-history-original"></span></p>
+            <p class="forecast-history-records"><strong>Previsão mais recente</strong> <span class="forecast-history-latest"></span></p>
+            <div class="forecast-history-summary">
+              <dl data-metric="temperature_2m_max">
+                <div><dt>Temperatura máxima</dt><dd class="history-difference"></dd></div>
+                <div><dt>Primeira</dt><dd class="history-original-value"></dd></div>
+                <div><dt>Mais recente</dt><dd class="history-latest-value"></dd></div>
+              </dl>
+              <dl data-metric="temperature_2m_min">
+                <div><dt>Temperatura mínima</dt><dd class="history-difference"></dd></div>
+                <div><dt>Primeira</dt><dd class="history-original-value"></dd></div>
+                <div><dt>Mais recente</dt><dd class="history-latest-value"></dd></div>
+              </dl>
+              <dl data-metric="precipitation_probability_max">
+                <div><dt>Chance máxima de precipitação</dt><dd class="history-difference"></dd></div>
+                <div><dt>Primeira</dt><dd class="history-original-value"></dd></div>
+                <div><dt>Mais recente</dt><dd class="history-latest-value"></dd></div>
+              </dl>
+            </div>
+          </div>
+          <div class="forecast-history-chart" hidden>
+            <div class="charts-header">
+              <div><h3 class="chart-metric-title"></h3><p class="chart-period"></p></div>
+              <label class="chart-controls">Métrica
+                <select class="control">
+                  <option value="temperature_2m_max" data-unit="°C">Temperatura máxima</option>
+                  <option value="temperature_2m_min" data-unit="°C">Temperatura mínima</option>
+                  <option value="precipitation_probability_max" data-unit="%">Chance máxima de precipitação</option>
+                </select>
+              </label>
+            </div>
+            <p class="metric-context chart-context" id="forecast-history-chart-context"></p>
+            <p class="chart-empty" hidden>Esta métrica está indisponível nos registros da data selecionada.</p>
+            <div class="chart-content">
+              <p class="chart-reading"></p>
+              <canvas class="chart-canvas" aria-hidden="true"></canvas>
+              <label class="chart-scrubber">Registro no gráfico
+                <input class="chart-hour" type="range" min="0" max="0" value="0" aria-describedby="forecast-history-chart-context">
+              </label>
+            </div>
+          </div>
+          <dialog class="panel history-dialog forecast-history-dialog" aria-labelledby="forecast-history-clear-title" aria-describedby="forecast-history-clear-description">
+            <h2 id="forecast-history-clear-title">Apagar histórico de previsões?</h2>
+            <p id="forecast-history-clear-description">Os registros de todas as cidades serão apagados deste navegador.</p>
+            <form method="dialog">
+              <button class="control" value="cancelar" autofocus>Cancelar</button>
+              <button class="control" value="limpar">Apagar histórico</button>
+            </form>
+          </dialog>
+        </section>
       </section>
       <section id="comparar" data-page class="comparison" aria-labelledby="compare-title" tabindex="-1" hidden>
         <header class="page-heading compare-heading">

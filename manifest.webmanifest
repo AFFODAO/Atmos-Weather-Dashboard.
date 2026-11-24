@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "ATMOS Weather Dashboard",
+  "short_name": "ATMOS",
+  "description": "Previsão do tempo, comparação de cidades e planejamento de atividades.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#101020",
+  "background_color": "#101020",
+  "icons": [
+    { "src": "./icons/atmos-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/atmos-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/atmos-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

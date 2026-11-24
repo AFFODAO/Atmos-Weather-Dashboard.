@@ -22,6 +22,18 @@ const hourlyDetailReadings = hourlyDetail.querySelectorAll("[data-hourly]");
 const hourlyTitle = document.querySelector("#hourly-title");
 const timelineReset = document.querySelector(".timeline-reset");
 const planner = new ActivityPlanner(document.querySelector("#planejador"));
+const assistant = new WeatherAssistant(document.querySelector("#atmos-ai"), () => {
+  const now = Math.floor(Date.now() / 1000);
+  const today = getLocalParts(now).day;
+  const weather = statusMessage.dataset.state === "loading" || displayedWeather?.saved ? undefined : displayedWeather;
+  return {
+    weather, forecast: displayedForecast, now, today, history: forecastHistory,
+    cities: comparison.slots.map(({ result }) => result),
+    tomorrow: today && plannerDay(today, 1),
+    air: displayedWeather && airQuality.cachedEstimate(displayedWeather.location),
+    planner, format: formatReading, fetchJson,
+  };
+});
 const insightsPanel = document.querySelector(".insights");
 const hourlyUnits = {
   temperature_2m: " °C", relative_humidity_2m: "%", wind_speed_10m: " km/h",
@@ -30,8 +42,11 @@ const hourlyUnits = {
 const chartCard = document.querySelector(".forecast-charts");
 const chartsUnavailable = document.querySelector(".charts-unavailable");
 const chart = new ForecastChart(chartCard, formatReading);
+const forecastHistory = new ForecastHistoryView(document.querySelector(".forecast-history"), formatReading);
 const chartReset = document.querySelector(".chart-reset");
 const refreshButton = document.querySelector(".refresh-button");
+const connectionPanel = document.querySelector(".pwa-connectivity");
+const connectionRetry = connectionPanel.querySelector(".connection-retry");
 const advisoryButton = document.querySelector(".advisory-button");
 const advisoryDialog = document.querySelector(".advisory-dialog");
 const localClock = document.querySelector(".current-date");
@@ -66,13 +81,8 @@ document.addEventListener("click", (event) => {
   const button = event.target.closest(".explanation-toggle");
   if (!button) return;
   const expanded = button.getAttribute("aria-expanded") === "false";
-  const panel = document.getElementById(button.getAttribute("aria-controls"));
-  const previousLabel = button.textContent;
-  const label = expanded ? "Ocultar detalhes" : "Saiba mais";
-  button.textContent = label;
-  button.setAttribute("aria-label", label + button.getAttribute("aria-label").slice(previousLabel.length));
-  button.setAttribute("aria-expanded", String(expanded));
-  panel.inert = !expanded;
+  setWeatherExplanation(button, expanded);
+  if (weatherPanel.contains(button)) saveDashboardLayout();
 });
 
 function setWeatherStatus(state, message = "") {
@@ -85,6 +95,26 @@ function setWeatherStatus(state, message = "") {
   chartsUnavailable.hidden = loading || !chartCard.hidden;
   if (!displayedForecast) calendarStatus.textContent = loading
     ? "Carregando a previsão…" : "Previsão indisponível.";
+  renderConnection();
+}
+
+function renderConnection() {
+  const offline = !navigator.onLine;
+  const saved = displayedWeather?.saved;
+  connectionPanel.hidden = !offline && !saved && statusMessage.dataset.state !== "offline";
+  connectionRetry.disabled = offline || statusMessage.dataset.state === "loading";
+  connectionPanel.querySelector(".connection-message").textContent = offline
+    ? "Você está offline. A atualização meteorológica precisa de conexão."
+    : "O navegador indica conexão. A disponibilidade do serviço meteorológico ainda precisa ser verificada.";
+  const message = connectionPanel.querySelector(".saved-forecast-message");
+  message.hidden = !saved;
+  if (saved) {
+    const date = displayedForecast.loadedAt;
+    const time = message.querySelector("time");
+    time.dateTime = date.toISOString();
+    time.textContent = clockFormat ? clockFormat.format(date) + " (horário local da cidade)"
+      : date.toLocaleString("pt-BR", { timeZone: "UTC" }) + " (UTC)";
+  }
 }
 
 function formatReading(value, unit, difference = false) {
@@ -186,6 +216,7 @@ function displayPercentage(selector, value) {
 }
 
 async function fetchJson(endpoint, params, signal) {
+  if (!navigator.onLine) throw new Error("Você está offline.");
   const url = new URL(endpoint);
   url.search = new URLSearchParams(params);
   const controller = new AbortController();
@@ -523,7 +554,7 @@ document.querySelector(".hourly-charts-link").addEventListener("click", (event) 
   if (!event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) selectForecastDay(undefined);
 });
 
-function displayWeather(location, { current, daily, hourly, timezone, utc_offset_seconds }) {
+function displayWeather(location, { current, daily, hourly, timezone, utc_offset_seconds }, { loadedAt = new Date(), saved = false } = {}) {
   configureClock(timezone);
   const previousLocation = displayedWeather?.location;
   const sameLocation = location === previousLocation || (isCity(location) && location.id === previousLocation?.id);
@@ -533,7 +564,8 @@ function displayWeather(location, { current, daily, hourly, timezone, utc_offset
     hourlyList.scrollLeft = 0;
     advisoryDialog.querySelector(".advisory-list").replaceChildren();
   }
-  displayedWeather = { location, current };
+  displayedWeather = { location, current, timezone, saved };
+  assistant.updateLocation(location);
   displayCurrentWeather(location, current);
   const place = [location.name, cityRegion(location)].filter(Boolean).join(" · ");
   calendarPanel.querySelector(".calendar-location").textContent = place;
@@ -542,7 +574,8 @@ function displayWeather(location, { current, daily, hourly, timezone, utc_offset
   const days = daily.time.map((timestamp) => dailyDate(timestamp, utc_offset_seconds, (time) => getLocalParts(time).day));
   if (!sameLocation || !days.includes(selectedDay)) selectedDay = undefined;
   const now = new Date();
-  displayedForecast = { daily: { ...daily, time: days }, samples: makeHourlySamples(hourly), loadedAt: now };
+  displayedForecast = { daily: { ...daily, time: days }, samples: makeHourlySamples(hourly), loadedAt };
+  if (!saved) forecastHistory.record(location, displayedForecast.daily, timezone, utc_offset_seconds, loadedAt);
   updateClock(now);
   weatherPanel.hidden = false;
   chartCard.hidden = false;
@@ -550,6 +583,9 @@ function displayWeather(location, { current, daily, hourly, timezone, utc_offset
 }
 
 function displayCurrentWeather(location, current) {
+  const saved = displayedWeather.saved;
+  document.querySelector("#current-title").textContent = saved ? "Condições da consulta salva" : "Condições atuais";
+  document.querySelector("#metrics-title").textContent = saved ? "Métricas da consulta salva" : "Métricas atuais";
   const { temperature_2m, relative_humidity_2m, wind_speed_10m, weather_code, is_day } = current;
   const [description, icon] = describeWeather(weather_code, is_day !== 0);
   const region = cityRegion(location);
@@ -575,7 +611,7 @@ function displayCurrentWeather(location, current) {
   const observation = getLocalParts(current.time);
   const observedDate = observation.day && new Date(observation.day + "T00:00:00Z");
   weatherPanel.querySelector(".observation-time").textContent = !observedDate || !Number.isFinite(observedDate.getTime())
-    ? "Horário dos dados atuais indisponível."
+    ? (saved ? "Horário da leitura salva indisponível." : "Horário dos dados atuais indisponível.")
     : "Dados de " + shortDateFormat.format(observedDate) + " às " + observation.time + " (horário local)";
   displayPercentage(".humidity", relative_humidity_2m);
   displayPercentage(".cloud-cover", current.cloud_cover);
@@ -602,6 +638,7 @@ function displayCurrentWeather(location, current) {
 
 function displayDailyMetrics(now, newForecast = false, unitsChanged = false) {
   const { daily, samples } = displayedForecast;
+  const saved = displayedWeather.saved;
   const timestamp = Math.floor(now.getTime() / 1000);
   const current = samples.findLast((sample) => sample.timestamp <= timestamp && timestamp - sample.timestamp < 3600);
   const today = getLocalParts(timestamp).day;
@@ -618,13 +655,19 @@ function displayDailyMetrics(now, newForecast = false, unitsChanged = false) {
     sample.timestamp >= start && sample.timestamp < start + 24 * 3600);
   if (timelineDay && today && timelineDay < today) timelineDay = undefined;
   displayTimeline();
-  planner.update(displayedWeather.location, samples, timestamp);
+  planner.update(displayedWeather.location, saved ? [] : samples, timestamp, today, getLocalParts(timestamp + plannerHorizon).day);
+  if (saved) planner.status.textContent = "Atualize a previsão para receber recomendações de atividades.";
   const tomorrow = today ? new Date(Date.parse(today + "T00:00:00Z") + 86400000).toISOString().slice(0, 10) : undefined;
   const dayIndex = Array.isArray(daily?.time) && today ? daily.time.indexOf(today) : -1;
-  renderWeatherInsights(insightsPanel, daily, dayIndex, displayedForecast.upcoming);
+  renderWeatherInsights(insightsPanel, daily, dayIndex, saved ? [] : displayedForecast.upcoming);
+  if (saved) insightsPanel.querySelector(".insights-empty").textContent = "Atualize a previsão para receber sugestões.";
   const loadedAt = displayedForecast.loadedAt;
-  renderForecastAdvisories(advisoryDialog, advisoryButton, displayedForecast.upcoming, current?.timestamp ?? timestamp,
+  renderForecastAdvisories(advisoryDialog, advisoryButton, saved ? [] : displayedForecast.upcoming, current?.timestamp ?? timestamp,
     displayedWeather.location, loadedAt, clockFormat?.format(loadedAt) ?? "horário local indisponível");
+  if (saved) {
+    advisoryButton.setAttribute("aria-label", "Avisos aguardando atualização da previsão");
+    advisoryDialog.querySelector(".advisory-empty").textContent = "Atualize a previsão para avaliar os avisos.";
+  }
   displayPercentage(".precipitation", daily?.precipitation_probability_max?.[dayIndex]);
   const uv = describeUv(daily?.uv_index_max?.[dayIndex]);
   displayMetricReading(weatherPanel.querySelector(".uv-index"), uv.index, "", uv.category);
@@ -645,6 +688,35 @@ function displayDailyMetrics(now, newForecast = false, unitsChanged = false) {
   }
 }
 
+function showSavedForecast(match) {
+  const saved = readOfflineForecast(match);
+  if (!saved) return false;
+  displayWeather(saved.city, saved.forecast, { loadedAt: saved.loadedAt, saved: true });
+  selectedLocation = saved.city;
+  searchInput.value = saved.city.name;
+  cityDirectory.setCurrent(saved.city, false, false);
+  if (!assistant.panel.hidden) assistant.refreshQuestions();
+  return true;
+}
+
+function markWeatherSaved() {
+  if (!displayedWeather || displayedWeather.saved) return;
+  displayedWeather.saved = true;
+  assistant.updateLocation(displayedWeather.location);
+  displayCurrentWeather(displayedWeather.location, displayedWeather.current);
+  displayDailyMetrics(new Date(), true);
+}
+
+function showOffline(match) {
+  const found = displayedWeather
+    ? !match || (typeof match === "string" ? match.trim().toLocaleLowerCase("pt-BR") === displayedWeather.location.name.toLocaleLowerCase("pt-BR")
+      : match === displayedWeather.location || (isCity(match) && match.id === displayedWeather.location.id))
+    : false;
+  const available = found || showSavedForecast(match);
+  markWeatherSaved();
+  setWeatherStatus("offline", available ? "" : "Não há uma previsão salva para esta cidade. Tente novamente quando houver conexão.");
+}
+
 async function loadWeather(resolveLocation, {
   loadingMessage = "Carregando dados meteorológicos…", remember = false, recordSearch = false,
 } = {}) {
@@ -652,26 +724,42 @@ async function loadWeather(resolveLocation, {
   const request = new AbortController();
   activeRequest = request;
   setWeatherStatus("loading", loadingMessage);
+  let location;
 
   try {
-    const location = await resolveLocation(request.signal);
+    location = await resolveLocation(request.signal);
     if (request.signal.aborted || !location) return;
+    if (!navigator.onLine) {
+      showOffline(location);
+      return;
+    }
     setWeatherStatus("loading", "Carregando dados meteorológicos…");
 
     const forecast = await fetchForecast(location, request.signal);
     if (request.signal.aborted) return;
     if (!forecast.available) {
+      if (!displayedWeather) showSavedForecast(location);
+      markWeatherSaved();
       setWeatherStatus("empty", "Não há dados meteorológicos disponíveis para esta cidade." +
         (selectedLocation ? " Exibindo a última previsão carregada." : ""));
       return;
     }
-    displayWeather(location, forecast);
+    const loadedAt = new Date();
+    displayWeather(location, forecast, { loadedAt });
+    saveOfflineForecast(location, forecast, loadedAt);
     selectedLocation = location;
     cityDirectory.setCurrent(location, remember, recordSearch);
     setWeatherStatus("ready");
+    if (!assistant.panel.hidden) assistant.refreshQuestions();
     showActiveEnvironment();
   } catch {
     if (!request.signal.aborted) {
+      if (!navigator.onLine) {
+        showOffline(location);
+        return;
+      }
+      if (location && !displayedWeather) showSavedForecast(location);
+      markWeatherSaved();
       setWeatherStatus("error",
         "Não foi possível carregar os dados meteorológicos. Verifique sua conexão e tente novamente." +
         (selectedLocation ? " Exibindo os dados da última consulta bem-sucedida." : ""));
@@ -730,6 +818,10 @@ async function fetchLocations(city, signal) {
 }
 
 function searchWeather(city, cached, remember = true) {
+  if (!navigator.onLine) {
+    showOffline(city);
+    return;
+  }
   if (city.length < 2) {
     activeRequest?.abort();
     setWeatherStatus("error", "Digite pelo menos duas letras do nome da cidade.");
@@ -747,6 +839,7 @@ function searchWeather(city, cached, remember = true) {
       return results[0];
     } catch {
       if (!signal.aborted) {
+        if (!displayedWeather && !remember) showSavedForecast(city);
         setWeatherStatus("error", "Não foi possível buscar cidades. Verifique a conexão e tente novamente.");
       }
     }
@@ -808,6 +901,7 @@ function updateWeatherUnits() {
     chart.refresh();
   }
   comparison.update({ preserveHour: true });
+  forecastHistory.refreshUnits();
   if (weatherMap.pointWeather) weatherMap.renderPointWeather();
 }
 
@@ -885,26 +979,36 @@ function showActiveEnvironment() {
   if (!airPanel.hidden) airQuality.show(selectedLocation);
 }
 document.querySelector(".location-button").addEventListener("click", () => {
+  if (!navigator.onLine) {
+    showOffline();
+    return;
+  }
   cityDirectory.close();
   loadWeather(locateUser, { loadingMessage: "Obtendo sua localização…" });
 });
-refreshButton.addEventListener("click", () => {
+function retryForecast() {
+  if (!navigator.onLine || activeRequest) return;
   if (selectedLocation) loadWeather(() => selectedLocation);
   else if (searchInput.value.trim()) searchWeather(searchInput.value.trim());
   else loadDefaultCity();
-});
+}
+refreshButton.addEventListener("click", retryForecast);
+connectionRetry.addEventListener("click", retryForecast);
 
 const layout = document.querySelector(".layout");
 const sidebarToggle = document.querySelector(".sidebar-toggle");
 const sidebar = document.querySelector(".sidebar");
+const mobileSectionName = sidebar.querySelector(".mobile-section-name");
 const sectionLinks = sidebar.querySelectorAll("nav a");
 const pages = new Map([...document.querySelectorAll("[data-page]")].map((page) => ["#" + page.id, page]));
-const mobileViewport = matchMedia("(max-width: 720px)");
+const mobileViewport = matchMedia("(max-width: 720px), (max-width: 980px) and (max-height: 500px) and (any-pointer: coarse)");
 let activePage;
 
 function setMenuCollapsed(collapsed) {
+  layout.classList.toggle("mobile-navigation", mobileViewport.matches);
   layout.classList.toggle("menu-collapsed", collapsed);
-  const label = collapsed ? "Expandir menu" : "Recolher menu";
+  const label = mobileViewport.matches ? (collapsed ? "Abrir páginas" : "Fechar páginas")
+    : (collapsed ? "Expandir menu" : "Recolher menu");
   sidebarToggle.setAttribute("aria-expanded", String(!collapsed));
   sidebarToggle.setAttribute("aria-label", label);
   sidebarToggle.title = label;
@@ -920,6 +1024,13 @@ sidebar.addEventListener("keydown", (event) => {
     sidebarToggle.focus();
   }
 });
+for (const type of ["click", "focusin"]) {
+  document.addEventListener(type, (event) => {
+    if (mobileViewport.matches && !sidebar.contains(event.target) && !layout.classList.contains("menu-collapsed")) {
+      setMenuCollapsed(true);
+    }
+  });
+}
 for (const link of sectionLinks) {
   link.addEventListener("click", (event) => {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
@@ -940,9 +1051,12 @@ function updateCurrentSection(moveFocus = true) {
   activePage = pages.get(target);
   if (mobileViewport.matches) setMenuCollapsed(true);
   for (const page of pages.values()) page.hidden = page !== activePage;
+  if (!assistant.panel.hidden) assistant.refreshQuestions();
   for (const link of sectionLinks) {
-    if (link.hash === target) link.setAttribute("aria-current", "page");
-    else link.removeAttribute("aria-current");
+    if (link.hash === target) {
+      link.setAttribute("aria-current", "page");
+      mobileSectionName.textContent = link.getAttribute("aria-label");
+    } else link.removeAttribute("aria-current");
   }
   if (moveFocus) {
     const details = focusCalendarDay && activePage === calendarPanel && !calendarDetail.hidden;
@@ -963,6 +1077,10 @@ updateCurrentSection(Boolean(location.hash));
 
 function loadDefaultCity() {
   const saved = preferences.defaultCity ?? cityDirectory.state.last;
+  if (!navigator.onLine) {
+    if (saved) searchInput.value = saved.name;
+    return showOffline(saved);
+  }
   if (saved) {
     searchInput.value = saved.name;
     return loadWeather(() => saved);
@@ -970,6 +1088,14 @@ function loadDefaultCity() {
   return searchWeather("Denver", undefined, false);
 }
 
+window.addEventListener("offline", () => {
+  activeRequest?.abort();
+  activeRequest = undefined;
+  if (displayedWeather) showOffline();
+  else loadDefaultCity();
+  if (!assistant.panel.hidden) assistant.refreshQuestions();
+});
+window.addEventListener("online", renderConnection);
 loadDefaultCity();
 setInterval(() => {
   if (!clockFormat || !displayedForecast) return;

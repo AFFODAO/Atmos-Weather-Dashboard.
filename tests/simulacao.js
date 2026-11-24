@@ -1,4 +1,10 @@
 ﻿const DataReal = Date;
+if (sessionStorage.getItem("atmos-teste-modo-autonomo") === "sim") {
+  Object.defineProperty(navigator, "standalone", { value: true });
+}
+Object.defineProperty(navigator, "onLine", {
+  get: () => sessionStorage.getItem("atmos-teste-sem-rede") !== "sim",
+});
 let instante = Date.parse("2026-11-18T12:00:00Z");
 window.Date = class extends DataReal {
   constructor(...args) { super(...(args.length ? args : [instante])); }
@@ -157,10 +163,10 @@ window.fetch = async (url, { signal } = {}) => {
     },
     daily: {
       time: dias, weather_code: chuvaNosInsights ? [61, 61] : tempoAbertoNosInsights ? [0, 0] : [0, 61],
-      temperature_2m_max: [temperatura + 5, temperatura + 7],
-      temperature_2m_min: [cidade.name === "Rio Branco" ? 0 : temperatura - 2, temperatura],
+      temperature_2m_max: [temperatura + 5 + (window.variacaoPrevisao ?? 0), temperatura + 7],
+      temperature_2m_min: [cidade.name === "Rio Branco" ? 0 : temperatura - 2 - (window.variacaoPrevisao ?? 0), temperatura],
       precipitation_probability_max: chuvaNosInsights ? [70, 85] : tempoAbertoNosInsights ? [0, 0]
-        : [cidade.name === "Rio Branco" ? 0 : 10, 80],
+        : [cidade.name === "Rio Branco" ? 0 : 10 + 2 * (window.variacaoPrevisao ?? 0), 80],
       uv_index_max: chuvaNosInsights ? [1, 9] : tempoAbertoNosInsights ? [1, 1]
         : [cidade.name === "Rio Branco" ? 0 : latitude === 0 ? 2 : 8, 11],
       sunrise: [inicio + 6 * 3600, inicio + 30 * 3600],

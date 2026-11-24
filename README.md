@@ -22,6 +22,7 @@ O projeto mantém a licença MIT e o aviso original **Copyright (c) 2020 DenverC
 - Temas claro e escuro, escolha da cidade padrão e unidades de temperatura e vento.
 - Central de avisos da previsão com contagem no cabeçalho e detalhes por período.
 - Planejador de atividades com preferências salvas e acesso ao horário recomendado na linha do tempo.
+- Ordem ajustável dos cartões de métricas e painéis opcionais recolhíveis, com layout salvo no navegador.
 
 [Histórico das melhorias](MELHORIAS.md) · [Roteiro da apresentação](ROTEIRO.md)
 
@@ -57,7 +58,9 @@ Vento e rajadas compõem um único aviso por período. A chuva em milímetros co
 
 ## Planejador
 
-O **Planejador** usa até 72 horas da previsão horária já carregada. Ele oferece até três períodos sem sobreposição, com duração de uma a quatro horas consecutivas. O padrão para novas preferências é **Horário diurno** (06h–19h), considerando a indicação de luz do dia da previsão quando disponível. As outras opções são madrugada (0h–6h), manhã (6h–12h), tarde (12h–18h), noite (18h–0h) e **Qualquer horário**. A janela inteira precisa caber na faixa escolhida, no fuso da cidade. As preferências salvas por atividade são preservadas, inclusive **Qualquer horário**, que era o padrão anterior.
+O **Planejador** usa até 72 horas da previsão horária já carregada. Em **Hoje**, **Amanhã** e **Próximos dias**, mostra a janela mais adequada para cada data local, com atividade, horário, temperatura, chance de chuva, vento, rajadas e UV. Cada janela dura de uma a quatro horas consecutivas e aparece na data em que começa, mesmo que termine no dia seguinte. Nesse caso, o dia seguinte considera apenas horários a partir do fim da recomendação anterior. Quando não há recomendação, o cartão explica se faltaram dados, se os critérios não foram atendidos ou se os períodos adequados se sobrepõem.
+
+O padrão para novas preferências é **Horário diurno** (06h–19h), considerando a indicação de luz do dia da previsão quando disponível. As outras opções são madrugada (0h–6h), manhã (6h–12h), tarde (12h–18h), noite (18h–0h) e **Qualquer horário**. A janela inteira precisa caber na faixa escolhida, no fuso da cidade. As preferências salvas por atividade são preservadas, inclusive **Qualquer horário**, que era o padrão anterior.
 
 | Atividade | Temperatura padrão | Chance máx. de chuva | Vento máx. | Rajada máx. | UV máx. |
 | --- | --- | ---: | ---: | ---: | ---: |
@@ -67,11 +70,76 @@ O **Planejador** usa até 72 horas da previsão horária já carregada. Ele ofer
 | Passeio ao ar livre | 17–30 °C | 30% | 25 km/h | 40 km/h | 4 |
 | Lavar o carro | 12–30 °C | 10% | 25 km/h | 35 km/h | 5 |
 
-Cada hora precisa ter temperatura no início e chance de chuva no horário de término. O planejador também exclui períodos com chuva horária de pelo menos 10 mm, temperatura de pelo menos 35 °C ou condição prevista fora das categorias de céu limpo a encoberto. A nota meteorológica de 0 a 100 combina temperatura, chuva, vento, rajadas, UV e condição do céu. Temperaturas próximas ao centro da faixa e valores menores de chance de chuva, vento, rajadas e UV recebem notas maiores. Leituras opcionais ausentes reduzem a nota e são indicadas no resultado.
+Cada hora precisa ter temperatura no início e chance de chuva no horário de término. O planejador também exclui períodos com chuva horária de pelo menos 10 mm, temperatura de pelo menos 35 °C ou condição prevista fora das categorias de céu limpo a encoberto. Em **Entenda a pontuação**, consulte o peso e os pontos de cada critério, a contribuição do horário e os descontos. Temperaturas próximas ao centro da faixa e valores menores de chance de chuva, vento, rajadas e UV rendem mais pontos.
 
-A classificação combina 75% da nota meteorológica e 25% da adequação do horário, com um desconto de cinco pontos a cada 24 horas de espera. Em **Qualquer horário**, as janelas inteiramente diurnas ficam à frente das alternativas. Para corrida, o início da manhã (06h–10h) e o fim da tarde (16h–19h) recebem preferência dentro da faixa escolhida. As demais atividades usam os limites específicos da tabela para equilibrar conforto, vento, rajadas, UV e chuva.
+A previsão vale até 75 pontos e o horário vale até 25. A nota usa todas as horas da janela. Para cada critério, calcula a média das notas horárias com leitura disponível e distribui os pontos meteorológicos conforme o peso e a proporção de horas com leitura. Leituras ausentes são identificadas e geram um desconto separado de 25% dos 75 pontos meteorológicos multiplicados pela parcela do peso aplicável sem leitura. O UV fica fora do cálculo nas horas sem luz. Quando a previsão não traz a indicação de luz do dia, o cálculo usa a faixa diurna local.
+
+| Atividade | Temperatura | Chance de chuva | Vento | Rajadas | UV | Condição do céu |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Caminhada | 20 | 20 | 12 | 8 | 10 | 5 |
+| Corrida | 24 | 14 | 12 | 8 | 12 | 5 |
+| Ciclismo | 14 | 18 | 19 | 15 | 5 | 4 |
+| Passeio ao ar livre | 18 | 17 | 9 | 8 | 17 | 6 |
+| Lavar o carro | 10 | 35 | 10 | 8 | 8 | 4 |
+
+A espera desconta cinco pontos a cada 24 horas, proporcionalmente. A barra e o rótulo usam o mesmo valor final, arredondado e limitado a 0–100. Em **Qualquer horário**, as janelas inteiramente diurnas ficam à frente das alternativas. Para corrida, o início da manhã (06h–10h) e o fim da tarde (16h–19h) recebem preferência dentro da faixa escolhida. A nota estima a adequação às preferências. A previsão pode mudar e a pontuação não garante segurança.
 
 O atalho de uma recomendação seleciona o horário inicial na linha do tempo. Quando estiver fora das próximas 24 horas, a linha do tempo exibe a data recomendada e oferece um botão para retornar às próximas 24 horas.
+
+## Personalização do painel
+
+Abra **Personalizar painel** para usar os botões **Mover para cima** e **Mover para baixo** nos cartões de **Métricas atuais** e **Previsão para hoje**. Cada cartão muda de posição dentro do seu grupo, inclusive na ordem de leitura e navegação por teclado. A previsão semanal e as sugestões meteorológicas podem ser recolhidas e reabertas pelo título do controle.
+
+A ordem dos cartões, o estado dos painéis e as explicações abertas no painel são salvos neste navegador. **Restaurar layout padrão** recupera a ordem original, reabre os dois painéis opcionais e recolhe as explicações. A personalização mantém os valores nos cartões e reaproveita a previsão já carregada.
+
+## Evolução das previsões
+
+Em **Gráficos → Evolução das previsões**, selecione uma cidade e uma data-alvo. A seção compara a primeira previsão ainda guardada com a mais recente e mostra os aumentos e quedas de máxima, mínima e chance máxima de precipitação. A diferença de chance aparece em pontos percentuais. Passe o cursor, toque no gráfico ou use o controle **Registro no gráfico** para consultar cada registro com data e hora no fuso da cidade.
+
+- O histórico usa as previsões diárias da Open-Meteo já recebidas pelo painel principal. Ele começa na primeira consulta registrada neste navegador e representa o que o modelo previa a cada consulta. O histórico de observações meteorológicas é um dado diferente.
+- O ATMOS registra apenas cidades identificadas na busca e datas com pelo menos uma das três leituras. Cada par de cidade e data-alvo tem intervalo mínimo de três horas entre registros. Consultas com os mesmos valores e metadados de fuso que o registro anterior são ignoradas.
+- O navegador conserva até 500 registros no total, por até 30 dias a partir da consulta, com prioridade para os mais recentes. A limpeza ocorre ao carregar o histórico ou receber uma previsão elegível. **Apagar histórico de previsões** remove os registros locais após confirmação.
+- Se o navegador impedir a gravação, os novos registros podem ficar disponíveis apenas na visita atual. O formato local é validado e versionado. Dados de versões incompatíveis são preservados até a exclusão explícita.
+
+## ATMOS AI
+
+Abra **ATMOS AI** pela barra lateral ou pelo atalho do Painel. Escolha uma pergunta sugerida ou digite a sua. O assistente usa regras locais para consultar chuva, temperatura, UV e vento na cidade selecionada. Ele responde sobre as condições atuais e a previsão de hoje ou amanhã e consulta as preferências salvas do Planejador para indicar janelas de atividade.
+
+Para perguntas sobre qualidade do ar, o assistente usa a estimativa recente da mesma cidade já consultada na página **Qualidade do ar**. Se ela estiver indisponível, a resposta local oferece um atalho para a consulta. O histórico da conversa permanece disponível enquanto a página estiver aberta, inclusive ao navegar pelo ATMOS.
+
+### Modo generativo
+
+No modo local, a pergunta permanece no navegador. Quando há um backend configurado, marque **Usar IA generativa** para enviar cada nova pergunta à OpenAI por meio do Worker. O envio inclui a cidade, o fuso, as condições atuais, até 24 amostras horárias, até sete datas de previsão e, quando disponíveis, avisos do ATMOS, qualidade do ar e recomendações do Planejador. O aplicativo não inclui coordenadas, identificadores do usuário ou mensagens anteriores. Evite incluir informações pessoais no texto da pergunta.
+
+As respostas são geradas com o contexto recebido. Uma previsão representa condições esperadas, e as condições atuais da Open-Meteo são estimativas de modelo. A previsão pode mudar. Os avisos do ATMOS são calculados com base na previsão e os alertas oficiais devem ser consultados nos canais da Defesa Civil. Quando o serviço generativo falha ou demora demais, o chat identifica a resposta local.
+
+### Análises do assistente
+
+- **Resumo das próximas 24 horas** usa as horas disponíveis para mostrar a faixa de temperatura, as mudanças significativas, os horários de maior chance de chuva, vento, umidade e UV. A qualidade do ar aparece como estimativa recente quando já foi consultada.
+- **Atividades** usam a janela validada pelo Planejador. A resposta mostra a faixa de horário selecionada, os limites respeitados e as leituras disponíveis. Para usar outra faixa, ajuste a preferência no Planejador.
+- **Evolução da previsão** compara as consultas guardadas para uma única cidade e data-alvo. É possível indicar a data como AAAA-MM-DD. **Compare as duas cidades selecionadas** usa as cidades já carregadas em **Comparar**. As diferenças das condições atuais exigem o mesmo instante, e as diferenças diárias exigem a mesma data local.
+- **Incerteza** explica a diferença entre chance de chuva e dispersão de cenários. Ao pedir explicitamente pelo **conjunto de previsões**, o navegador pode consultar a temperatura do conjunto GEFS da Open-Meteo para a cidade identificada. Quando há pelo menos dois membros válidos no mesmo horário, o assistente mostra a maior faixa encontrada nas próximas 24 horas e o número de membros com leitura. Essa faixa descreve os cenários retornados. [API de conjuntos da Open-Meteo](https://open-meteo.com/en/docs/ensemble-api)
+
+As análises são calculadas no navegador mesmo com o modo generativo ativado. A conversa guarda até 12 trocas. **Limpar conversa** apaga essas mensagens e preserva os registros meteorológicos.
+
+### Publicação do Worker
+
+1. Em `backend/wrangler.toml`, ajuste `ATMOS_ALLOWED_ORIGIN` para a origem HTTPS exata do GitHub Pages ou do domínio personalizado, sem o caminho do projeto nem barra final. Ajuste `OPENAI_MODEL` se for usar outro modelo compatível com a Responses API. O padrão é `gpt-4.1-mini`.
+2. Em `backend/`, autentique o Wrangler e publique o Worker com os comandos abaixo. Use Wrangler 4.36 ou mais recente. Insira a chave apenas quando o último comando solicitar. Para desenvolvimento local do Worker, copie `backend/.dev.vars.example` para `backend/.dev.vars` e preencha o valor ali. O arquivo fica fora do Git. [Segredos no Cloudflare Workers](https://developers.cloudflare.com/workers/configuration/secrets/)
+
+   ```sh
+   npx wrangler login
+   npx wrangler deploy
+   npx wrangler secret put OPENAI_API_KEY
+   ```
+
+3. Em `assistant-config.js`, informe somente a URL pública HTTPS do Worker com o caminho `/api/assistente`. Publique o frontend no GitHub Pages como de costume. Com a URL vazia, o chat permanece no modo local.
+
+O Worker valida a origem, o método, o tipo de conteúdo e os campos da requisição. O corpo tem limite de 12 KiB, a chamada à Responses API tem prazo de 9 segundos e a geração tem limite de 420 tokens. A requisição usa `store: false` e o cliente recebe apenas o texto ou uma mensagem genérica de erro. [Referência da Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create)
+
+Os limites do Worker são de cinco requisições por IP e 30 para o serviço, por minuto e por região da Cloudflare. São limites aproximados. A origem CORS restringe o uso por páginas web, enquanto os limites por IP e serviço reduzem abuso do endpoint público. Monitore o consumo do projeto OpenAI e configure alertas de orçamento antes de habilitar o acesso público. [Limites do Cloudflare Workers](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)
+
+**Custos.** A OpenAI cobra pelos tokens de entrada e saída. Como referência, a tabela oficial do `gpt-4.1-mini` lista US$ 0,40 por milhão de tokens de entrada e US$ 1,60 por milhão de saída. Uma pergunta com 2.000 tokens de entrada e 300 de saída custaria cerca de US$ 0,00128, antes de eventuais custos de hospedagem. Confira os preços vigentes antes de publicar. [Preços do modelo](https://developers.openai.com/api/docs/models/gpt-4.1-mini)
 
 ## Como usar
 
@@ -80,12 +148,46 @@ O atalho de uma recomendação seleciona o horário inicial na linha do tempo. Q
 3. Para consultar as condições no seu local, use **Minha localização** e permita o acesso no navegador. Esse recurso requer HTTPS ou um servidor local, como o Live Server.
 4. Use **Atualizar dados** para refazer a última consulta bem-sucedida. Na primeira visita, o tema acompanha a preferência do sistema. Ao alternar entre claro e escuro, o navegador guarda sua escolha para as próximas visitas.
 
+## Instalar o ATMOS
+
+- **Android.** Abra a URL HTTPS publicada no Chrome. Em **Configurações → Instalação do aplicativo**, toque em **Instalar ATMOS** quando a opção aparecer. Também é possível abrir o menu **⋮** do navegador e escolher **Instalar app** ou **Adicionar à tela inicial → Instalar**, conforme a versão. Abra o ATMOS pelo ícone na tela inicial. [Instalação no Chrome para Android](https://support.google.com/chrome/answer/9658361?co=GENIE.Platform%3DAndroid&hl=pt-BR)
+- **Windows.** No Chrome ou no Edge, use **Instalar ATMOS** nas configurações do site ou o ícone de instalação na barra de endereços. No Edge, também é possível usar **⋯ → Mais ferramentas → Aplicativos → Instalar este site como aplicativo**. Abra o ATMOS pelo menu Iniciar ou por `edge://apps`, se a instalação foi feita no Edge. [Instalação no Microsoft Edge](https://support.microsoft.com/en-US/edge/install-manage-or-uninstall-apps-in-microsoft-edge)
+- **iPhone ou iPad.** Abra a URL no Safari. Em **Compartilhar**, escolha **Adicionar à Tela de Início**, ative **Abrir como App da Web** quando disponível e toque em **Adicionar**. Outros navegadores no iOS podem oferecer a mesma ação no menu de compartilhamento. Se a ação faltar, abra a página no Safari. [Instalação no Safari](https://support.apple.com/pt-br/guide/iphone/iphea86e5236/ios)
+
+O aplicativo abre em janela própria quando a plataforma oferece o modo autônomo. O manifesto, os ícones e o service worker usam caminhos relativos à pasta do site.
+
+Em telas pequenas, o cabeçalho mostra a página ativa e o botão **Páginas** dá acesso à navegação. Use Tab para percorrer os links e Escape para fechar o menu. Em telas maiores, a barra lateral permanece ao lado do conteúdo. O layout respeita as áreas seguras do dispositivo nas orientações vertical e horizontal.
+
+Na linha do tempo, deslize para ver mais horários ou use as setas do teclado. Nos gráficos, toque ou arraste horizontalmente sobre o gráfico para consultar as leituras. O controle deslizante também funciona pelo teclado.
+
+### Uso sem conexão
+
+Na primeira visita com conexão, o service worker guarda os arquivos locais da interface. Depois disso, o painel e a navegação podem abrir sem rede enquanto o navegador mantiver esses arquivos. Favoritos, preferências e histórico de previsões continuam disponíveis no navegador.
+
+O ATMOS guarda uma única previsão normalizada, da última cidade identificada por uma consulta bem-sucedida. A cópia local de até 96 KiB é utilizável por 48 horas, quando corresponde à cidade solicitada. O painel mostra o horário original da consulta e identifica as condições salvas. Avisos e recomendações de atividades ficam suspensos até uma nova consulta. O recurso exclui coordenadas de geolocalização do usuário e guarda apenas os dados públicos da cidade necessários para consultá-la novamente. [Termos da Open-Meteo](https://open-meteo.com/en/terms)
+
+Quando voltar a conexão, use **Tentar atualizar a previsão**. O indicador do navegador informa o estado da conexão, enquanto a resposta da API confirma se o serviço está disponível. Novas consultas, mapas, qualidade do ar e o modo generativo precisam de conexão. O service worker guarda somente os arquivos locais listados e deixa as requisições externas seguirem as regras normais do navegador e dos provedores. [Política de mosaicos do OpenStreetMap](https://operations.osmfoundation.org/policies/tiles/)
+
+### Atualizações do aplicativo
+
+Quando todos os arquivos de uma nova versão estiverem prontos, o ATMOS mostra **Atualizar aplicativo**. A página aberta só é recarregada após a confirmação. A atualização preserva as preferências, os favoritos, a previsão salva e o histórico local.
+
+Ao publicar alterações nos arquivos que compõem a interface, incremente `SHELL_VERSION` em `service-worker.js` e mantenha a lista de arquivos locais sincronizada com o HTML. A ativação remove os caches de versões anteriores do mesmo subdiretório.
+
+### Solução de problemas
+
+- **A opção de instalação está ausente.** Abra a URL HTTPS em uma aba comum e verifique o menu do navegador. O botão do ATMOS depende do prompt oferecido pelo navegador e fica oculto no modo autônomo. No iPhone ou iPad, use o menu de compartilhamento. [Critérios de instalação do Chrome](https://web.dev/articles/install-criteria)
+- **O aplicativo não abre sem conexão.** Abra-o uma vez com internet e aguarde o carregamento da interface. O navegador pode remover arquivos guardados por falta de espaço ou limpeza dos dados do site. Se a interface abrir sem previsão, reconecte e consulte a cidade desejada.
+- **A atualização não aparece.** Abra a URL publicada com internet e confira se a publicação terminou em **Actions**. No Chrome ou Edge, **Ferramentas do desenvolvedor → Aplicativo → Service Workers** mostra o escopo e o estado do worker. Se a instalação falhou, verifique a resposta de cada arquivo da lista de pré-cache e confirme que `SHELL_VERSION` foi incrementado. [Ciclo de vida do service worker](https://developer.chrome.com/docs/workbox/service-worker-lifecycle)
+- **O navegador mostra conexão, mas os dados falham.** Use **Tentar atualizar a previsão**. O painel exibe os dados salvos quando disponíveis. O mapa, a qualidade do ar e o modo generativo dependem dos respectivos serviços.
+
 ## Publicação no GitHub Pages
 
-1. Envie a branch `entrega-atmos` ao remoto `origin` com os comandos abaixo.
+1. Confirme que `origin` aponta para o fork que receberá o site e envie a branch `entrega-atmos` com os comandos abaixo. A publicação estática usa a raiz da branch e dispensa compilação.
 2. No repositório do GitHub, abra **Settings** (Configurações) → **Pages**. Em **Build and deployment** (Compilação e publicação), selecione **Deploy from a branch** (Publicar de uma branch).
 3. Escolha a branch `entrega-atmos` e a pasta `/(root)`. Salve. O `index.html` fica na raiz, junto dos arquivos estáticos, com caminhos relativos que funcionam no subdiretório do repositório.
-4. Acompanhe a execução em **Actions** (Ações) e abra a URL que aparecer em **Pages**. Ative **Enforce HTTPS** (Exigir HTTPS) se a opção estiver disponível. Confirme na URL publicada que a página inicia e que uma busca por Recife retorna a previsão.
+4. Acompanhe a execução em **Actions** (Ações) e abra a URL HTTPS que aparecer em **Pages**, com o subdiretório do projeto e a barra final. Ative **Enforce HTTPS** (Exigir HTTPS) se a opção estiver disponível.
+5. Na URL publicada, consulte Recife e confira no painel **Aplicativo** do Chrome ou Edge se o manifesto e o service worker têm o mesmo subdiretório. Abra a versão instalada, verifique o ícone e repita a abertura sem conexão depois da primeira consulta. O backend generativo é opcional e sua publicação segue as instruções da seção ATMOS AI.
 
 [Guia oficial do GitHub Pages](https://docs.github.com/pt/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
 
@@ -94,13 +196,8 @@ O atalho de uma recomendação seleciona o horário inicial na linha do tempo. Q
 ```powershell
 git status --short
 git remote -v
-git fetch origin
-if ($LASTEXITCODE -ne 0) { throw "Confira o acesso ao remoto antes de continuar." }
-git log --left-right --oneline origin/main...HEAD
-if (git diff --cached --name-only) { throw "Revise os arquivos que já estão preparados para commit." }
-git switch -c entrega-atmos
-if ($LASTEXITCODE -ne 0) { throw "Escolha um nome livre para a branch de entrega." }
-git add -- .nojekyll README.md MELHORIAS.md ROTEIRO.md index.html style.css theme.js script.js weather-data.js cities.js compare.js charts.js environment.js insights.js advisories.js planner.js tests/configuracoes.html tests/configuracoes.js tests/revisao.js tests/simulacao.js tests/testar_configuracoes.py
+git switch entrega-atmos
+git add -- .gitignore .nojekyll LICENSE README.md MELHORIAS.md ROTEIRO.md index.html style.css manifest.webmanifest ':(top,glob)*.js' icons/ backend/.dev.vars.example backend/worker.mjs backend/wrangler.toml tests/configuracoes.html tests/configuracoes.js tests/revisao.js tests/simulacao.js tests/testar_configuracoes.py
 git diff --cached --stat
 git diff --cached --check
 ```
@@ -108,12 +205,12 @@ git diff --cached --check
 Depois de revisar os arquivos preparados, faça o commit e envie a branch.
 
 ```powershell
-git commit -m "Prepara o ATMOS para a entrega escolar"
+git commit -m "Valida e prepara o PWA do ATMOS para publicação"
 if ($LASTEXITCODE -ne 0) { throw "Revise a falha do commit antes de enviar a branch." }
 git push -u origin entrega-atmos
 ```
 
-Confira se `origin` aponta para o repositório **AFFODAO/Atmos-Weather-Dashboard.** e revise o conteúdo preparado antes do commit. Se `entrega-atmos` já existir no remoto, escolha outro nome livre e use esse nome também na configuração do Pages. Se a entrega exigir publicação pela `main`, abra uma solicitação de integração da branch de entrega para `main` e selecione `main` no Pages após a integração.
+Revise os arquivos preparados antes do commit. Se a branch `entrega-atmos` ainda não existir no seu clone, use `git switch -c entrega-atmos`. Se o envio for rejeitado por divergência, integre as alterações remotas antes de publicar. Para publicar pela `main`, integre a branch de entrega e selecione `main` no Pages.
 
 ## Limitações
 
@@ -184,12 +281,31 @@ Confira se `origin` aponta para o repositório **AFFODAO/Atmos-Weather-Dashboard
 Execute `python tests/testar_configuracoes.py` com Python 3.12 e Google Chrome. Use a variável `ATMOS_CHROME` se o executável estiver em outro caminho.
 
 - A suíte com dados simulados verifica a busca, cidades homônimas, falhas e respostas incompletas, cancelamento de consultas, unidades, temas, armazenamento, previsões, comparação entre fusos, geolocalização e navegação em larguras de 320, 350 e 1.280 px.
-- O teste de navegação verifica as nove páginas, os controles globais, a barra lateral durante a rolagem, o menu em telas baixas, a persistência da cidade e os botões **Voltar** e **Avançar**.
+- O teste de navegação verifica as dez páginas, os controles globais, a barra lateral durante a rolagem, o menu em telas baixas, a persistência da cidade e os botões **Voltar** e **Avançar**.
+- O teste do ATMOS AI verifica o atalho, o envio de perguntas, os estados da interface, as respostas com dados disponíveis ou ausentes e o uso do cache de qualidade do ar. Também confere foco, rótulos e largura do chat nos dois temas.
+- O teste generativo executa o Worker e o chat com um provedor simulado e sem credenciais reais, incluindo restrição de origem, validação, limites, prazos e retorno ao modo local.
 - O teste de contexto verifica as unidades dos gráficos, a leitura acessível por horário, os detalhes expansíveis, as faixas de UV e IQA, os horários solares e o comportamento com dados ausentes.
 - Os testes das cinco etapas cobrem cartões recolhidos e os dois temas, sincronização da linha do tempo com o gráfico, virada do dia e horário de verão, sugestões e avisos sem conflito, limites de intensidade e expiração, além das preferências e janelas de até 72 horas do Planejador.
+- A suíte simulada também verifica a classificação por atividade e data local, a indicação de dados ausentes, a persistência da ordem e do recolhimento dos painéis, o foco após mover um cartão e a restauração do layout em uma tela de 320 px.
 - Execute `python tests/testar_configuracoes.py --servicos-reais` para verificar previsão, geocodificação e qualidade do ar da Open-Meteo, além do Leaflet e dos mosaicos do OpenStreetMap. O teste precisa de acesso à internet.
 - A suíte com serviços reais também verifica as interações do Leaflet e a recuperação de 403, 429 e perda de conexão com mosaicos simulados para os testes de arrasto, zoom e falhas.
 - As duas suítes servem o projeto em um subdiretório local para verificar os caminhos relativos usados no GitHub Pages.
+- Para executar a regressão no Edge no Windows, aponte `ATMOS_CHROME` para o executável antes de chamar o mesmo teste.
+
+  ```powershell
+  $env:ATMOS_CHROME = 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
+  python tests/testar_configuracoes.py
+  Remove-Item Env:ATMOS_CHROME
+  ```
+
+- Os testes de PWA verificam o escopo, os ícones, o modo autônomo simulado, a abertura com o servidor indisponível, a reconexão e a troca de versões. O service worker é executado pelo navegador e as tentativas de atualização com uma versão repetida ou um arquivo ausente devem preservar a versão em uso.
+
+### Verificação manual após publicar
+
+1. Abra a URL HTTPS indicada pelo Pages em um dispositivo Android, em um iPhone ou iPad e no Windows. Instale pelo navegador e inicie pelo ícone do sistema. Confirme que a abertura aponta para a raiz do subdiretório e usa janela própria quando suportado.
+2. Em cada dispositivo, faça uma consulta, feche o aplicativo, desconecte a rede e abra pelo ícone. Confira a navegação e o horário da previsão salva. Reconecte e toque em **Tentar atualizar a previsão**.
+3. Confira o menu, os formulários, a linha do tempo e os gráficos por toque e teclado e alterne entre temas e orientações. Verifique geolocalização com a permissão concedida e negada.
+4. Em uma próxima publicação, deixe o aplicativo aberto antes do envio. Depois que a atualização aparecer, confirme que o app espera o clique em **Atualizar aplicativo** e que favoritos, histórico e preferências continuam acessíveis.
 - Confira também a URL pública em HTTPS após a publicação no Pages.
 
 ## Lista de conferência da entrega

@@ -1,0 +1,24 @@
+name = "atmos-assistente"
+main = "worker.mjs"
+compatibility_date = "2026-01-01"
+preview_urls = false
+
+[vars]
+ATMOS_ALLOWED_ORIGIN = "https://affodao.github.io"
+OPENAI_MODEL = "gpt-4.1-mini"
+
+[[ratelimits]]
+name = "ATMOS_IP_LIMIT"
+namespace_id = "45001"
+
+[ratelimits.simple]
+limit = 5
+period = 60
+
+[[ratelimits]]
+name = "ATMOS_SERVICE_LIMIT"
+namespace_id = "45002"
+
+[ratelimits.simple]
+limit = 30
+period = 60

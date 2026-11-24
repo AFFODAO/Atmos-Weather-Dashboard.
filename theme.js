@@ -31,6 +31,8 @@ function savePreferences() {
 function applyTheme() {
   const theme = preferences.theme === "system" ? (systemTheme.matches ? "dark" : "light") : preferences.theme;
   document.documentElement.dataset.theme = theme;
+  const color = document.querySelector('meta[name="theme-color"]');
+  if (color) color.content = theme === "light" ? "#efedf8" : "#101020";
   const button = document.querySelector(".theme-button");
   if (!button) return;
   const light = theme === "light";

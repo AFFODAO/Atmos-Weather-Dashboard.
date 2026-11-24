@@ -12,9 +12,12 @@ const chartDescriptions = {
 };
 
 class ForecastChart {
-  constructor(panel, formatReading) {
+  constructor(panel, formatReading, { irregular = false, rangeLabel = "horário", descriptions = chartDescriptions } = {}) {
     this.panel = panel;
     this.formatReading = formatReading;
+    this.irregular = irregular;
+    this.rangeLabel = rangeLabel;
+    this.descriptions = descriptions;
     this.canvas = panel.querySelector("canvas");
     this.context = this.canvas.getContext("2d");
     this.metric = panel.querySelector("select");
@@ -30,7 +33,7 @@ class ForecastChart {
     this.metric.addEventListener("change", () => this.refresh());
     this.range.addEventListener("input", () => this.select(this.range.valueAsNumber));
     this.canvas.addEventListener("pointermove", (event) => {
-      if (event.pointerType !== "touch") this.selectAt(event);
+      if (event.pointerType !== "touch" || event.buttons === 1) this.selectAt(event);
     });
     this.canvas.addEventListener("pointerdown", (event) => this.selectAt(event));
     new ResizeObserver(() => this.scheduleDraw()).observe(this.canvas);
@@ -64,8 +67,8 @@ class ForecastChart {
   refresh() {
     const metric = this.metric.value;
     this.title.textContent = this.metric.selectedOptions[0].textContent + (this.unit ? " (" + this.unit + ")" : "");
-    this.description.textContent = chartDescriptions[metric] +
-      " Passe o cursor, toque no gráfico ou use o controle de horário para consultar cada leitura.";
+    this.description.textContent = this.descriptions[metric] +
+      " Passe o cursor, toque no gráfico ou use o controle de " + this.rangeLabel + " para consultar cada leitura.";
     this.values = this.series.length
       ? this.series.map((_, index) => this.samples.map((sample) => sample.cities[index]?.[metric]))
       : [this.samples.map((sample) => sample[metric])];
@@ -178,9 +181,12 @@ class ForecastChart {
     }
     const labelCount = Math.min(x.length, Math.max(2, Math.floor((right - left) / 56) + 1));
     ctx.textAlign = "center";
+    let lastLabel = -Infinity;
     for (let i = 0; i < labelCount; i++) {
       const index = labelCount === 1 ? 0 : Math.round(i * (x.length - 1) / (labelCount - 1));
+      if (this.irregular && x[index] - lastLabel < 48) continue;
       ctx.fillText(this.samples[index].time, x[index], bottom + 21);
+      lastLabel = x[index];
     }
 
     this.values.forEach((values, index) =>
@@ -209,7 +215,7 @@ class ForecastChart {
       }
       const time = this.series.length ? this.samples[index].cities[seriesIndex].timestamp : this.samples[index].timestamp;
       const pointY = y(value);
-      if (previous < 0 || time - previousTime !== 3600) {
+      if (previous < 0 || (!this.irregular && time - previousTime !== 3600)) {
         ctx.moveTo(x[index], pointY);
       } else if (this.metric.value === "temperature_2m") {
         const middle = (x[previous] + x[index]) / 2;

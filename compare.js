@@ -63,6 +63,13 @@ function comparisonPeriod(forecast, now) {
   };
 }
 
+function comparisonAlignment(a, b) {
+  return {
+    current: Number.isFinite(a.current?.time) && a.current.time === b.current?.time,
+    daily: Boolean(a.today?.date && a.today.date === b.today?.date),
+  };
+}
+
 function appendComparisonReading(list, label, reading) {
   const term = document.createElement("dt");
   const value = document.createElement("dd");
@@ -209,8 +216,8 @@ class WeatherComparison {
   }
 
   renderDifferences(a, b) {
-    const sameInstant = Number.isFinite(a.current?.time) && a.current.time === b.current?.time;
-    const sameDay = Boolean(a.today?.date && a.today.date === b.today?.date);
+    const alignment = comparisonAlignment(a, b);
+    const { current: sameInstant, daily: sameDay } = alignment;
     const context = "Condições atuais: " + (sameInstant ? "mesmo instante. " : "sem diferença calculada para horários distintos ou indisponíveis. ") +
       "Previsão do dia: " + (sameDay ? "cada cidade no mesmo dia do calendário local."
         : "sem diferença calculada para datas locais distintas ou indisponíveis.");
@@ -221,7 +228,7 @@ class WeatherComparison {
       for (const [key, label, unit] of metrics) {
         const first = a[group]?.[key];
         const second = b[group]?.[key];
-        const comparable = (group === "current" ? sameInstant : sameDay) && Number.isFinite(first) && Number.isFinite(second);
+        const comparable = alignment[group] && Number.isFinite(first) && Number.isFinite(second);
         const difference = comparable ? second - first : undefined;
         const reading = this.formatReading(difference, unit === "%" ? " p.p." : unit, true);
         const value = appendComparisonReading(list, label, reading);

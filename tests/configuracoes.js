@@ -28,7 +28,7 @@ async function abrir(hash = "#painel") {
 }
 
 async function navegar(secao) {
-  if (janela().matchMedia("(max-width: 720px)").matches && buscar(".layout").classList.contains("menu-collapsed")) {
+  if (buscar(".layout").matches(".mobile-navigation.menu-collapsed")) {
     clicar(".sidebar-toggle");
   }
   clicar('nav a[href="#' + secao + '"]');
