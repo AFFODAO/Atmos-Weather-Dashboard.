@@ -1,5 +1,20 @@
 # ATMOS Weather Dashboard
 
+<p align="center">
+  <a href="https://affodao.github.io/Atmos-Weather-Dashboard./">
+    <img src="icons/atmos-192.png" width="140" alt="Abrir o ATMOS Weather Dashboard">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://affodao.github.io/Atmos-Weather-Dashboard./">
+    <img src="https://img.shields.io/badge/ACESSAR%20O%20ATMOS-6C63FF?style=for-the-badge" alt="Acessar o ATMOS">
+  </a>
+</p>
+
+**Aplicação publicada:** https://affodao.github.io/Atmos-Weather-Dashboard./
+
+
 O ATMOS é um painel meteorológico em português brasileiro desenvolvido como projeto escolar. Consulte as condições atuais, planeje os próximos dias e compare cidades em uma interface que se adapta a computadores e celulares. As horas e datas são exibidas de acordo com o fuso da cidade consultada.
 
 ## Projeto original e licença
@@ -307,6 +322,14 @@ Execute `python tests/testar_configuracoes.py` com Python 3.12 e Google Chrome. 
 3. Confira o menu, os formulários, a linha do tempo e os gráficos por toque e teclado e alterne entre temas e orientações. Verifique geolocalização com a permissão concedida e negada.
 4. Em uma próxima publicação, deixe o aplicativo aberto antes do envio. Depois que a atualização aparecer, confirme que o app espera o clique em **Atualizar aplicativo** e que favoritos, histórico e preferências continuam acessíveis.
 - Confira também a URL pública em HTTPS após a publicação no Pages.
+
+## Links da entrega do trabalho
+
+- **Repositório GitHub:** https://github.com/AFFODAO/Atmos-Weather-Dashboard.
+- **Site publicado:** https://affodao.github.io/Atmos-Weather-Dashboard./
+- **Vídeo de apresentação (até 5 minutos):** [INSERIR LINK DO VÍDEO]
+
+[![Abrir ATMOS](icons/atmos-192.png)](https://affodao.github.io/Atmos-Weather-Dashboard./)
 
 ## Lista de conferência da entrega
 
